@@ -1,0 +1,429 @@
+--Easy Power and Toughness
+--by @TyrantNomad
+--based on Power and Toughness by Tipsy Hobbit (steamid: 13465982)
+
+encVersion = 1
+pID = "_MTG_Simplified_POWTOU"
+autoActivateModule = true
+isRegistered = false
+
+function onload()
+    createModuleChipButtons()
+end
+
+function createModuleChipButtons()
+    enc = Global.getVar('Encoder')
+    if enc ~= nil then
+        isRegistered = enc.call("APIpropertyExists",{propID = pID})
+    else
+        isRegistered = false
+    end
+
+    self.createButton({
+        click_function="doNothing",
+        function_owner=self,
+        position={0,0.15,-0.325},
+        rotation={180,0,0},
+
+        height= 116,
+        width= 800,
+
+        color = {90/255,24/255,51/255}
+    })
+
+    self.createButton({
+        label= "EASY POW/TOU",
+        click_function="doNothing",
+        function_owner=self,
+        position={0,0.15,-0.325},
+
+        height= 0,
+        width= 0,
+
+        color = {90/255,24/255,51/255},
+
+        font_size = 100,
+        font_color = {1,156/255,196/255}
+    })
+
+    self.createButton({
+        label = "AUTO "..(autoActivateModule and "ON" or "OFF"),
+        tooltip = "When ON, automatically activates the module on cards with pow/tou",
+
+        click_function = "toggleAutoActivate",
+        function_owner = self,
+
+        font_color = (autoActivateModule and {1,156/255,196/255} or {64/255,19/255,37/255}),
+        color = (autoActivateModule and {238/255, 25/255, 110/255} or {106/255, 29/255, 60/255}),
+        hover_color = {90/255,24/255,51/255},
+
+        position={0,0.15,0},
+
+        width = 600,
+        height = 80
+    })
+
+    self.createButton({
+        label=(isRegistered and "REGISTERED" or "ADD MODULE"),
+        click_function="doNothing",
+        function_owner=self,
+        position={0,0.15,0.35},
+        height=0,
+        width=0,
+        font_size = 60,
+    })
+
+    self.createButton({
+        click_function=(isRegistered and "doNothing" or "registerModule"),
+        function_owner=self,
+        position={0,0.15,0.35},
+        rotation = (isRegistered and {180,0,0} or {0,0,0}),
+        height=60,
+        width=450,
+        font_size = 60,
+    })
+end
+
+function clearModuleChipButtons()
+    chipButtons = self.getButtons()
+    for index,button in pairs(chipButtons) do
+        self.removeButton(index -1)
+    end
+end
+
+function refreshModuleChipButtons()
+    clearModuleChipButtons()
+    createModuleChipButtons()
+end
+
+function registerModule()
+  enc = Global.getVar('Encoder')
+  if enc ~= nil then
+    properties = {
+    propID = pID,
+    name = " Easy Pow/Tou",
+    dataStruct = {power=0,toughness=0, hasStats},
+    funcOwner = self,
+    callOnActivate = false,
+    activateFunc =''
+    }
+    enc.call("APIregisterProperty",properties)
+
+    refreshModuleChipButtons()
+  end
+end
+
+function toggleAutoActivate()
+    autoActivateModule = not autoActivateModule
+    refreshModuleChipButtons()
+end
+
+
+function createButtons(t)
+    enc = Global.getVar('Encoder')
+
+    if enc ~= nil then
+        data = enc.call("APIgetObjectData",{obj=t.object,propID=pID})
+        flip = enc.call("APIgetFlip",{obj=t.object})
+        scaler = {x=1,y=1,z=1}--t.object.getScale()
+
+        tryParsing(t.object)
+        
+        loyaltyOffset = 0
+        easyCounterData = enc.call("APIgetObjectData",{obj=t.object,propID="_MTG_Simplified_Counter"})
+        if easyCounterData ~= nil and easyCounterData.enabled == true then
+            if easyCounterData.hasLoyalty == true then
+                loyaltyOffset = -0.3
+            end
+        end
+
+        local widthPerDigit = 25
+        local baseWidth = 250
+        --size for double digit 320
+        --size for single digit 270?
+
+        local verticalSize = 130
+        --local horizontalSize = baseWidth + (string.len(data.power..data.toughness) * widthPerDigit)
+        horizontalSize = 320
+        
+        local rimSize = 30
+
+        local horizontalOffset = 0.69
+        local verticalOffset = 1.275  + loyaltyOffset
+        --tile size is about 500 for 1 unit
+
+        t.object.createButton({
+            tooltip = "Change Both",
+            click_function='receivePowTouClick',
+            function_owner=self,
+
+            position=
+            {
+                (horizontalOffset)*flip*scaler.x,
+                0.35*flip*scaler.z,
+                0.20 + (verticalOffset)*scaler.y
+            },
+
+            height= 60,
+            width= horizontalSize-40,
+            color = {0.3,0.3,0.3, 0.3},
+
+            scale = {1,1,0.5},
+
+            rotation={0,0,90-90*flip}
+        })
+
+        t.object.createButton({
+            label = "/",
+            font_color = {1,1,1},
+            font_size= 80,
+
+            click_function = 'doNothing',
+            function_owner = self,
+
+            height = 0,
+            width = 0,
+
+            color = {133/255,133/255,133/255},
+            hover_color = {133/255,133/255,133/255},
+
+            position=
+            {
+                (horizontalOffset)*flip*scaler.x,
+                0.28*flip*scaler.z,
+                (verticalOffset)*scaler.y
+            }
+        })
+
+        t.object.createButton({
+            click_function='doNothing',
+            function_owner=self,
+
+            position=
+            {
+                (horizontalOffset + 20/500 - (horizontalSize/4/500))*flip*scaler.x,
+                0.35*flip*scaler.z,
+                (verticalOffset)*scaler.y
+            },
+
+            height= verticalSize + 26,
+            width= horizontalSize/2.1 + 26,
+            color = {133/255,133/255,133/255},
+
+            rotation={0,0,-90-90*flip}
+        })
+        
+        t.object.createButton({
+            click_function='doNothing',
+            function_owner=self,
+
+            position=
+            {
+                (horizontalOffset - 20/500 + (horizontalSize/4/500))*flip*scaler.x,
+                0.35*flip*scaler.z,
+                (verticalOffset)*scaler.y
+            },
+
+            height= verticalSize + 26,
+            width= horizontalSize/2.1 + 26,
+            color = {133/255,133/255,133/255},
+
+            rotation={0,0,-90-90*flip}
+        })
+
+        t.object.createButton({
+            label=data.power.." ",
+
+            click_function='receivePowerClick',
+            tooltip = "Right-click to subtract",
+            function_owner=self,
+
+            position=
+            {
+                (horizontalOffset + 20/500 - (horizontalSize/4/500))*flip*scaler.x,
+                0.35*flip*scaler.z,
+                (verticalOffset)*scaler.y
+            },
+
+            height= verticalSize,
+            width= horizontalSize/2.1,
+            color = {66/255,66/255,66/255},
+
+            font_size= 80,
+            font_color = {1,1,1},
+
+            rotation={0,0,90-90*flip}
+        })
+
+        t.object.createButton({
+            label=" "..data.toughness,
+
+            click_function='receiveToughnessClick',
+            tooltip = "Right-click to subtract",
+            function_owner=self,
+
+            position=
+            {
+                (horizontalOffset - 20/500 + (horizontalSize/4/500))*flip*scaler.x,
+                0.35*flip*scaler.z,
+                (verticalOffset)*scaler.y
+            },
+
+            height= verticalSize,
+            width= horizontalSize/2.1,
+            color = {66/255,66/255,66/255},
+
+            font_size= 80,
+            font_color = {1,1,1},
+
+            rotation={0,0,90-90*flip}
+        })
+    end
+end
+
+--Editor Functions
+function tryParsing(object)
+    enc = Global.getVar('Encoder')
+    if enc ~= nil then
+        data = enc.call("APIgetObjectData",{obj=object,propID=pID})
+        
+        if data.hasStats == nil then
+            local description = object.getDescription()
+            local power = getPowerFromCard(description)
+            local toughness = getToughnessFromCard(description)
+
+            if power ~= nil and toughness ~= nil then
+                data.hasStats = true
+                data.power = power
+                data.toughness = toughness
+            else
+                data.hasStats = false
+            end
+            
+            enc.call("APIsetObjectData",{obj=object,propID=pID,data=data})
+        end
+
+        return data.hasStats
+    end
+end
+
+function receivePowerClick(tar,ply,alt)
+    local clickModifier = alt and -1 or 1
+    processStatDelta(tar, ply, clickModifier, 0)
+end
+
+function receiveToughnessClick(tar,ply,alt)
+    local clickModifier = alt and -1 or 1
+    processStatDelta(tar, ply, 0, clickModifier)
+end
+
+function receivePowTouClick(tar,ply,alt)
+    local clickModifier = alt and -1 or 1
+    processStatDelta(tar, ply, clickModifier, clickModifier)
+end
+
+function processStatDelta(tar, ply, deltaPow, deltaTou)
+    enc = Global.getVar('Encoder')
+
+    if enc ~= nil then
+        changePowerAndToughness(tar, deltaPow, deltaTou)
+        
+        if type(ply) == "string" then
+            local selection =Player[ply].getSelectedObjects()
+            if selection ~= nil then
+                for k,v in pairs(selection) do
+                    if v ~= tar and enc.call("APIobjectExist",{obj=v}) == true then
+                        changePowerAndToughness(v, deltaPow, deltaTou)
+                    end
+                end
+            end
+        else
+            enc.call("APIrebuildButtons",{obj=tar})
+        end
+    end
+end
+
+function changePowerAndToughness(tar, valueDeltaPow, valueDeltaTou)
+    enc = Global.getVar('Encoder')
+    if enc ~= nil then
+        data = enc.call("APIgetObjectData",{obj=tar,propID=pID})
+
+        if valueDeltaPow ~= 0 then
+            data.power = tonumber(data.power) ~= nil and data.power or 0
+            data.power = data.power + valueDeltaPow
+        end
+
+        if valueDeltaTou ~= 0 then
+            data.toughness = tonumber(data.toughness) ~= nil and data.toughness or 0
+            data.toughness = data.toughness + valueDeltaTou
+        end
+
+        enc.call("APIsetObjectData",{obj=tar,propID=pID,data=data})
+        enc.call("APIrebuildButtons",{obj=tar})
+    end
+end
+
+function getPowerFromCard(description)
+    local parsedValue = string.match(description,"]([%d%*xX]+)/")
+    local powerValue
+    if parsedValue ~= nil then
+        powerValue = parsedValue
+    end
+    return powerValue
+end
+
+function getToughnessFromCard(description)
+    local parsedValue = string.match(description,"/([%d%*xX]+)%[")
+    local toughnessValue
+    if parsedValue ~= nil then
+        toughnessValue = parsedValue
+    end
+    return toughnessValue
+end
+
+function onObjectDropped(playerColor,object)
+    if autoActivateModule == false or object.tag ~= "Card" then
+        return
+    end
+
+    timerId = "autoActivate"..pID.."for"..object.guid
+    Timer.destroy(timerId)
+
+    dataTable = {obj = object}
+    Timer.create({
+        identifier = timerId,
+        function_name = "autoActivate",
+        function_owner = self,
+        parameters = dataTable,
+        delay = 0.15
+    })
+end
+
+function autoActivate(dataTable)
+    object = dataTable.obj
+
+    local enc = Global.getVar('Encoder')
+    if enc ~= nil then
+        if enc.call("APIpropertyExists",{propID = pID}) == false then
+            return
+        
+        elseif enc.call("APIobjectExist", {obj=object}) ~= nil then
+            local data = enc.call("APIgetObjectData",{obj=object,propID=pID})
+            if data ~= nil and data.hasStats ~= nil then return end
+
+            if enc.call("APIcheckEnabled", {obj=object, propID = pID}) == false then
+                enc.call("APItoggleProperty",{obj=object, propID = pID})
+
+                if tryParsing(object) == false then
+                    enc.call("APItoggleProperty",{obj=object, propID = pID})
+                end
+
+                enc.call("APIrebuildButtons",{obj=object})
+                return
+            end
+        end
+    end
+end
+
+function doNothing()
+end

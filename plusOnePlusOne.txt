@@ -1,0 +1,345 @@
+--Easy +1/+1
+--by @TyrantNomad
+--based on Power and Toughness by Tipsy Hobbit (steamid: 13465982)
+
+encVersion = 1
+pID = "_MTG_Simplified_PlusOneCounters"
+autoActivateModule = true
+isRegistered = false
+
+function onload()
+    createModuleChipButtons()
+end
+
+function createModuleChipButtons()
+    enc = Global.getVar('Encoder')
+    if enc ~= nil then
+        isRegistered = enc.call("APIpropertyExists",{propID = pID})
+    else
+        isRegistered = false
+    end
+
+    self.createButton({
+        click_function="doNothing",
+        function_owner=self,
+        position={0,0.15,-0.325},
+        rotation={180,0,0},
+
+        height= 116,
+        width= 600,
+
+        color = {90/255,24/255,51/255}
+    })
+
+    self.createButton({
+        label= "EASY +1/+1",
+        click_function="doNothing",
+        function_owner=self,
+        position={0,0.15,-0.325},
+
+        height= 0,
+        width= 0,
+
+        color = {90/255,24/255,51/255},
+
+        font_size = 100,
+        font_color = {1,156/255,196/255}
+    })
+
+
+    self.createButton({
+        label = "AUTO "..(autoActivateModule and "ON" or "OFF"),
+        tooltip = "When ON, automatically activates the module on cards that say '+1/+1 counter on it'",
+
+        click_function = "toggleAutoActivate",
+        function_owner = self,
+
+        font_color = (autoActivateModule and {1,156/255,196/255} or {64/255,19/255,37/255}),
+        color = (autoActivateModule and {238/255, 25/255, 110/255} or {106/255, 29/255, 60/255}),
+        hover_color = {90/255,24/255,51/255},
+
+        position={0,0.15,0},
+
+        width = 600,
+        height = 80
+    })
+
+    self.createButton({
+        label=(isRegistered and "REGISTERED" or "ADD MODULE"),
+        click_function="doNothing",
+        function_owner=self,
+        position={0,0.15,0.35},
+        height=0,
+        width=0,
+        font_size = 60,
+    })
+
+    self.createButton({
+        click_function=(isRegistered and "doNothing" or "registerModule"),
+        function_owner=self,
+        position={0,0.15,0.35},
+        rotation = (isRegistered and {180,0,0} or {0,0,0}),
+        height=60,
+        width=450,
+        font_size = 60,
+    })
+end
+
+function clearModuleChipButtons()
+    chipButtons = self.getButtons()
+    for index,button in pairs(chipButtons) do
+        self.removeButton(index -1)
+    end
+end
+
+function refreshModuleChipButtons()
+    clearModuleChipButtons()
+    createModuleChipButtons()
+end
+
+function registerModule()
+  enc = Global.getVar('Encoder')
+  if enc ~= nil then
+    properties = {
+    propID = pID,
+    name = " Easy +1/+1",
+    dataStruct = {plusOneCounters=0, hasCounters},
+    funcOwner = self,
+    callOnActivate = false,
+    activateFunc =''
+    }
+    enc.call("APIregisterProperty",properties)
+
+    refreshModuleChipButtons()
+  end
+end
+
+function toggleAutoActivate()
+    autoActivateModule = not autoActivateModule
+    refreshModuleChipButtons()
+end
+
+
+function createButtons(t)
+    enc = Global.getVar('Encoder')
+
+    if enc ~= nil then
+        data = enc.call("APIgetObjectData",{obj=t.object,propID=pID})
+        flip = enc.call("APIgetFlip",{obj=t.object})
+        scaler = {x=1,y=1,z=1}--t.object.getScale()
+
+        loyaltyOffset = 0
+        easyCounterData = enc.call("APIgetObjectData",{obj=t.object,propID="_MTG_Simplified_Counter"})
+        if easyCounterData ~= nil and easyCounterData.enabled == true then
+            if easyCounterData.hasLoyalty == true then
+                loyaltyOffset = -0.3
+            end
+        end
+
+        local widthPerDigit = 25
+        local baseWidth = 250
+        --size for double digit 320
+        --size for single digit 270?
+
+        local verticalSize = 130
+        local horizontalSize = baseWidth + (string.len(math.abs(data.plusOneCounters)..math.abs(data.plusOneCounters)) * widthPerDigit)
+
+        local rimSize = 30
+
+        local horizontalOffset = 0.69
+        local verticalOffset = 0.99 + loyaltyOffset
+        --tile size is about 500 for 1 unit
+
+        temp = ""..((data.plusOneCounters >= 0) and "+" or "")..data.plusOneCounters..'/'..((data.plusOneCounters >= 0) and "+" or "")..data.plusOneCounters.." "
+
+        t.object.createButton({
+            tooltip = "+10/+10",
+            click_function='receiveTenClick',
+            function_owner=self,
+
+            position=
+            {
+                (horizontalOffset)*flip*scaler.x,
+                0.35*flip*scaler.z,
+                -0.2 + (verticalOffset)*scaler.y
+            },
+
+            height= 60,
+            width= horizontalSize-40,
+            color = {0.3,0.3,0.3, 0.4},
+            hover_color = {1,1,1, 0.66},
+
+            scale = {1,1,0.5},
+
+            rotation={0,0,90-90*flip}
+        })
+
+        t.object.createButton({
+            click_function = 'doNothing',
+            function_owner = self,
+
+            height = verticalSize + rimSize + 16,
+            width = horizontalSize + rimSize,
+
+            color = {133/255,133/255,133/255},
+
+            position=
+            {
+                (horizontalOffset)*flip*scaler.x,
+                0.28*flip*scaler.z,
+                (verticalOffset)*scaler.y
+            },
+
+            rotation={0,0,-90-90*flip}
+        })
+
+        t.object.createButton({
+            label=temp,
+            tooltip = "Right-click to subtract",
+
+            click_function='receiveSingleClick',
+            function_owner=self,
+
+            position=
+            {
+                (horizontalOffset)*flip*scaler.x,
+                0.35*flip*scaler.z,
+                (verticalOffset)*scaler.y
+            },
+
+            height= verticalSize,
+            width= horizontalSize,
+            color = {66/255,66/255,66/255},
+
+            font_size= 80,
+            font_color = {1,1,1},
+
+            rotation={0,0,90-90*flip}
+        })
+    end
+end
+
+--Editor Functions
+function tryParsing(object)
+    enc = Global.getVar('Encoder')
+    if enc ~= nil then
+        data = enc.call("APIgetObjectData",{obj=object,propID=pID})
+        description = object.getDescription()
+        
+        if data.hasCounters == nil then
+            data.hasCounters = false
+
+            local typeLine = string.match(object.getName(),"\n.*")
+            if typeLine ~= nil and string.find(typeLine, "Creature") == nil then 
+                enc.call("APIsetObjectData",{obj=object,propID=pID,data=data})
+                return data.hasCounters
+            end
+
+            local selfReferralString = {"it", object.getName():gsub('\n.*','')}
+
+            local parsedValue
+            for index, nameString in ipairs (selfReferralString) do
+                parsedValue = string.match(description, "[%+%-]1/[%+%-]1 counters? on "..nameString)
+                if parsedValue ~= nil then
+                    data.hasCounters = true
+                    break
+                end
+            end
+
+            enc.call("APIsetObjectData",{obj=object,propID=pID,data=data})
+        end
+
+        return data.hasCounters
+    end
+end
+
+function receiveSingleClick(tar,ply,alt)
+    local clickModifier = alt and -1 or 1
+    processCounterDelta(tar, ply, clickModifier)
+end
+
+function receiveTenClick(tar,ply,alt)
+    local clickModifier = alt and -1 or 1
+    processCounterDelta(tar, ply, clickModifier * 10)
+end
+
+function processCounterDelta(tar, ply, deltaCounter)
+    enc = Global.getVar('Encoder')
+
+    if enc ~= nil then
+        changeCounterCount(tar, deltaCounter)
+        
+        if type(ply) == "string" then
+            local selection =Player[ply].getSelectedObjects()
+            if selection ~= nil then
+                for k,v in pairs(selection) do
+                    if v ~= tar and enc.call("APIobjectExist",{obj=v}) == true then
+                        changeCounterCount(v, deltaCounter)
+                    end
+                end
+            end
+        else
+            enc.call("APIrebuildButtons",{obj=tar})
+        end
+    end
+end
+
+function changeCounterCount(tar, valueDelta)
+    enc = Global.getVar('Encoder')
+    if enc ~= nil then
+        data = enc.call("APIgetObjectData",{obj=tar,propID=pID})
+        data.plusOneCounters = data.plusOneCounters + valueDelta
+
+        enc.call("APIsetObjectData",{obj=tar,propID=pID,data=data})
+        enc.call("APIrebuildButtons",{obj=tar})
+    end
+end
+
+function onObjectDropped(playerColor,object)
+    if autoActivateModule == false or object.tag ~= "Card" then
+        return
+    end
+
+    timerId = "autoActivate"..pID.."for"..object.guid
+    Timer.destroy(timerId)
+
+    dataTable = {obj = object}
+    Timer.create({
+        identifier = timerId,
+        function_name = "autoActivate",
+        function_owner = self,
+        parameters = dataTable,
+        delay = 0.15
+    })
+end
+
+function autoActivate(dataTable)
+    object = dataTable.obj
+
+    local enc = Global.getVar('Encoder')
+    if enc ~= nil then
+        broadcastToAll(enc.version)
+        if enc.call("APIpropertyExists",{propID = pID}) == false then
+            return
+        
+        elseif enc.call("APIobjectExist", {obj=object}) ~= nil then
+            local data = enc.call("APIgetObjectData",{obj=object,propID=pID})
+            if data ~= nil and data.hasCounters ~= nil then return end
+
+            if enc.call("APIcheckEnabled", {obj=object, propID = pID}) == false then
+                enc.call("APItoggleProperty",{obj=object, propID = pID})
+                
+                if tryParsing(object) == false then
+                    enc.call("APItoggleProperty",{obj=object, propID = pID})
+                end
+
+                enc.call("APIrebuildButtons",{obj=object})
+                return
+            end
+        end
+    end
+end
+
+
+function doNothing()
+end
