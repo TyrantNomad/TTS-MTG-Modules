@@ -167,12 +167,18 @@ function registerModule()
     propID = pID,
     name = " Easy Modules",
     dataStruct = {
-        power=0, toughness=0, hasStats,
-        plusOneCounters=0, hasPlusOne,
-        genericCount = 0, hasGeneric, hasLoyalty},
-    funcOwner = self,
-    callOnActivate = false,
-    activateFunc =''
+        hasParsed = false,
+        power=0, toughness=0,
+        plusOneCounters=0,
+        genericCount = 0, hasLoyalty = false, hasOtherCounter = false},
+
+        displayCounters = false,
+        displayPowTou = false,
+        displayPlusOne = false,
+
+        funcOwner = self,
+        callOnActivate = false,
+        activateFunc =''
     }
     enc.call("APIregisterProperty",properties)
 
@@ -194,183 +200,479 @@ function createButtons(t)
         flip = enc.call("APIgetFlip",{obj=t.object})
         scaler = {x=1,y=1,z=1}--t.object.getScale()
 
-        tryParsing(t.object)
-        
-        loyaltyOffset = 0
-        easyCounterData = enc.call("APIgetObjectData",{obj=t.object,propID="_MTG_Simplified_Counter"})
-        if easyCounterData ~= nil and easyCounterData.enabled == true then
-            if easyCounterData.hasLoyalty == true then
-                loyaltyOffset = -0.3
-            end
+        if true then --toggle display buttons
+            buttonBackgroundColorOff = {0,0,0,  0.7}
+            buttonBackgroundColorOn = {0,0,0, 0.9}
+
+            buttonTextColorOff = {0.8,0.8,0.8, 0.8}
+            buttonTextColorOn = {1,0.8,0.4, 0.7}
+            buttonTextSize = 55
+
+            buttonHoverColor = {0,0,0,1}
+
+            verticalSpacing = 0.2
+            buttonDimensions = 90
+
+            t.object.createButton({
+                click_function = 'ToggleDisplayCounter',
+                function_owner = self,
+
+                label = "[1]",
+                font_size = buttonTextSize,
+                font_color = data.displayCounters and buttonTextColorOn or buttonTextColorOff,
+                tooltip = "Click to "..(data.displayCounters and "HIDE" or "SHOW").."\nCounters/Loyalty",
+
+                height = buttonDimensions,
+                width = buttonDimensions,
+
+                color = data.displayCounters and buttonBackgroundColorOn or buttonBackgroundColorOff,
+                hover_color = buttonHoverColor,
+
+                position=
+                {
+                    -1.035, 0.35, -0.36 + 2 * verticalSpacing
+                }
+            })
+
+            t.object.createButton({
+                click_function = 'ToggleDisplayPowTou',
+                function_owner = self,
+
+                label = "1/",
+                font_size = buttonTextSize,
+                font_color = data.displayPowTou and buttonTextColorOn or buttonTextColorOff,
+                tooltip = "Click to "..(data.displayPowTou and "HIDE" or "SHOW").."\nPow/Tou",
+
+                height = buttonDimensions,
+                width = buttonDimensions,
+
+                color = data.displayPowTou and buttonBackgroundColorOn or buttonBackgroundColorOff,
+                hover_color = buttonHoverColor,
+
+                position=
+                {
+                    -1.035, 0.35, -0.36 + 1 * verticalSpacing
+                }
+            })
+
+            t.object.createButton({
+                click_function = 'ToggleDisplayPlusOne',
+                function_owner = self,
+
+                label = "+1 ",
+                font_size = buttonTextSize,
+                font_color = data.displayPlusOne and buttonTextColorOn or buttonTextColorOff,
+                tooltip = "Click to "..(data.displayCounters and "HIDE" or "SHOW").."\n+1/+1 Counters",
+
+                height = buttonDimensions,
+                width = buttonDimensions,
+
+                color = data.displayPlusOne and buttonBackgroundColorOn or buttonBackgroundColorOff,
+                hover_color = buttonHoverColor,
+
+                position=
+                {
+                    -1.035, 0.35, -0.36 + 0 * verticalSpacing
+                }
+            })
         end
 
-        local widthPerDigit = 25
-        local baseWidth = 250
-        --size for double digit 320
-        --size for single digit 270?
-
-        local verticalSize = 130
-        --local horizontalSize = baseWidth + (string.len(data.power..data.toughness) * widthPerDigit)
-        horizontalSize = 320
+        parseCardData(t.object)
+        loyaltyOffset = (data.displayCounters and data.hasLoyalty) and -0.3 or 0
         
-        local rimSize = 30
+        --simplecounter buttons
+        if data.displayCounters then
+            local verticalSize = 130
+            local horizontalSize = 145
+            local rimSize = 30
 
-        local horizontalOffset = 0.69
-        local verticalOffset = 1.275  + loyaltyOffset
-        --tile size is about 500 for 1 unit
 
-        t.object.createButton({
-            tooltip = "Change Both",
-            click_function='receivePowTouClick',
-            function_owner=self,
+            local horizontalOffset = -0.81
+            local flipHorizontal = data.hasLoyalty and -1 or 1
+            local verticalOffset = 1.275
+            --tile size is about 500 for 1 unit
 
-            position=
-            {
-                (horizontalOffset)*flip*scaler.x,
-                0.35*flip*scaler.z,
-                0.20 + (verticalOffset)*scaler.y
-            },
+            t.object.createButton({
+                click_function = 'doNothing',
+                function_owner = self,
 
-            height= 60,
-            width= horizontalSize-40,
-            color = {0.3,0.3,0.3, 0.3},
+                height = verticalSize + rimSize,
+                width = horizontalSize + rimSize,
 
-            scale = {1,1,0.5},
+                color = {133/255,133/255,133/255},
 
-            rotation={0,0,90-90*flip}
-        })
+                position=
+                {
+                    flipHorizontal * ((horizontalOffset)*flip*scaler.x),
+                    0.28*flip*scaler.z,
+                    (verticalOffset)*scaler.y
+                },
 
-        t.object.createButton({
-            label = "/",
-            font_color = {1,1,1},
-            font_size= 80,
+                rotation={0,0,-90-90*flip}
+            })
 
-            click_function = 'doNothing',
-            function_owner = self,
 
-            height = 0,
-            width = 0,
+            t.object.createButton({
+                label=" "..data.genericCount.." ",
+                tooltip = "Right-Click to Subtract",
 
-            color = {133/255,133/255,133/255},
-            hover_color = {133/255,133/255,133/255},
+                click_function='receiveCounterClick',
+                function_owner=self,
 
-            position=
-            {
-                (horizontalOffset)*flip*scaler.x,
-                0.28*flip*scaler.z,
-                (verticalOffset)*scaler.y
-            }
-        })
+                position=
+                {
+                    flipHorizontal * ((horizontalOffset)*flip*scaler.x),
+                    0.35*flip*scaler.z,
+                    (verticalOffset)*scaler.y
+                },
 
-        t.object.createButton({
-            click_function='doNothing',
-            function_owner=self,
+                height= verticalSize,
+                width= horizontalSize,
+                color = {66/255,66/255,66/255},
 
-            position=
-            {
-                (horizontalOffset + 20/500 - (horizontalSize/4/500))*flip*scaler.x,
-                0.35*flip*scaler.z,
-                (verticalOffset)*scaler.y
-            },
+                font_size=fSize,
+                font_color = {1,1,1},
 
-            height= verticalSize + 26,
-            width= horizontalSize/2.1 + 26,
-            color = {133/255,133/255,133/255},
+                rotation={0,0,90-90*flip}
+            })
 
-            rotation={0,0,-90-90*flip}
-        })
-        
-        t.object.createButton({
-            click_function='doNothing',
-            function_owner=self,
+            t.object.createButton({
+                tooltip = "Increase by 10\nRight-Click to Subtract",
+                click_function='receiveTenCounterClick',
+                function_owner=self,
 
-            position=
-            {
-                (horizontalOffset - 20/500 + (horizontalSize/4/500))*flip*scaler.x,
-                0.35*flip*scaler.z,
-                (verticalOffset)*scaler.y
-            },
+                position=
+                {
+                    flipHorizontal * (horizontalOffset)*flip*scaler.x,
+                    0.35*flip*scaler.z,
+                    0.20 + (verticalOffset)*scaler.y
+                },
 
-            height= verticalSize + 26,
-            width= horizontalSize/2.1 + 26,
-            color = {133/255,133/255,133/255},
+                height= 80,
+                width= horizontalSize,
+                color = {0.3,0.3,0.3, 0.3},
 
-            rotation={0,0,-90-90*flip}
-        })
+                scale = {1,1,0.5},
 
-        t.object.createButton({
-            label=data.power.." ",
+                rotation={0,0,90-90*flip}
+            })
 
-            click_function='receivePowerClick',
-            tooltip = "Right-click to subtract",
-            function_owner=self,
+        end
 
-            position=
-            {
-                (horizontalOffset + 20/500 - (horizontalSize/4/500))*flip*scaler.x,
-                0.35*flip*scaler.z,
-                (verticalOffset)*scaler.y
-            },
+        --powtou buttons
+        if data.displayPowTou then
+            local widthPerDigit = 25
+            local baseWidth = 250
+            --size for double digit 320
+            --size for single digit 270?
 
-            height= verticalSize,
-            width= horizontalSize/2.1,
-            color = {66/255,66/255,66/255},
+            local verticalSize = 130
+            --local horizontalSize = baseWidth + (string.len(data.power..data.toughness) * widthPerDigit)
+            horizontalSize = 320
+            
+            local rimSize = 30
 
-            font_size= 80,
-            font_color = {1,1,1},
+            local horizontalOffset = 0.69
+            local verticalOffset = 1.275  + loyaltyOffset
+            --tile size is about 500 for 1 unit
 
-            rotation={0,0,90-90*flip}
-        })
+            --powtou increase both button
+            t.object.createButton({
+                tooltip = "Change Both\nRight-Click to Subtract",
+                click_function='receivePowTouClick',
+                function_owner=self,
 
-        t.object.createButton({
-            label=" "..data.toughness,
+                position=
+                {
+                    (horizontalOffset)*flip*scaler.x,
+                    0.35*flip*scaler.z,
+                    0.20 + (verticalOffset)*scaler.y
+                },
 
-            click_function='receiveToughnessClick',
-            tooltip = "Right-click to subtract",
-            function_owner=self,
+                height= 60,
+                width= horizontalSize-40,
+                color = {0.3,0.3,0.3, 0.3},
 
-            position=
-            {
-                (horizontalOffset - 20/500 + (horizontalSize/4/500))*flip*scaler.x,
-                0.35*flip*scaler.z,
-                (verticalOffset)*scaler.y
-            },
+                scale = {1,1,0.5},
 
-            height= verticalSize,
-            width= horizontalSize/2.1,
-            color = {66/255,66/255,66/255},
+                rotation={0,0,90-90*flip}
+            })
 
-            font_size= 80,
-            font_color = {1,1,1},
+            --powtou slash
+            t.object.createButton({
+                label = "/",
+                font_color = {1,1,1},
+                font_size= 80,
 
-            rotation={0,0,90-90*flip}
-        })
+                click_function = 'doNothing',
+                function_owner = self,
+
+                height = 0,
+                width = 0,
+
+                color = {133/255,133/255,133/255},
+                hover_color = {133/255,133/255,133/255},
+
+                position=
+                {
+                    (horizontalOffset)*flip*scaler.x,
+                    0.28*flip*scaler.z,
+                    (verticalOffset)*scaler.y
+                }
+            })
+
+            --powtou BG right
+            t.object.createButton({
+                click_function='doNothing',
+                function_owner=self,
+
+                position=
+                {
+                    (horizontalOffset + 20/500 - (horizontalSize/4/500))*flip*scaler.x,
+                    0.35*flip*scaler.z,
+                    (verticalOffset)*scaler.y
+                },
+
+                height= verticalSize + 26,
+                width= horizontalSize/2.1 + 26,
+                color = {133/255,133/255,133/255},
+
+                rotation={0,0,-90-90*flip}
+            })
+            --powtou BG left
+            t.object.createButton({
+                click_function='doNothing',
+                function_owner=self,
+
+                position=
+                {
+                    (horizontalOffset - 20/500 + (horizontalSize/4/500))*flip*scaler.x,
+                    0.35*flip*scaler.z,
+                    (verticalOffset)*scaler.y
+                },
+
+                height= verticalSize + 26,
+                width= horizontalSize/2.1 + 26,
+                color = {133/255,133/255,133/255},
+
+                rotation={0,0,-90-90*flip}
+            })
+
+            --powtou pow
+            t.object.createButton({
+                label=data.power.." ",
+
+                click_function='receivePowerClick',
+                tooltip = "Right-Click to Subtract",
+                function_owner=self,
+
+                position=
+                {
+                    (horizontalOffset + 20/500 - (horizontalSize/4/500))*flip*scaler.x,
+                    0.35*flip*scaler.z,
+                    (verticalOffset)*scaler.y
+                },
+
+                height= verticalSize,
+                width= horizontalSize/2.1,
+                color = {66/255,66/255,66/255},
+
+                font_size= 80,
+                font_color = {1,1,1},
+
+                rotation={0,0,90-90*flip}
+            })
+
+            --powtou tou
+            t.object.createButton({
+                label=" "..data.toughness,
+
+                click_function='receiveToughnessClick',
+                tooltip = "Right-Click to Subtract",
+                function_owner=self,
+
+                position=
+                {
+                    (horizontalOffset - 20/500 + (horizontalSize/4/500))*flip*scaler.x,
+                    0.35*flip*scaler.z,
+                    (verticalOffset)*scaler.y
+                },
+
+                height= verticalSize,
+                width= horizontalSize/2.1,
+                color = {66/255,66/255,66/255},
+
+                font_size= 80,
+                font_color = {1,1,1},
+
+                rotation={0,0,90-90*flip}
+            })
+        end
+
+        --plusone buttons
+        if data.displayPlusOne then
+            local widthPerDigit = 25
+            local baseWidth = 250
+            --size for double digit 320
+            --size for single digit 270?
+
+            local verticalSize = 130
+            local horizontalSize = baseWidth + (string.len(math.abs(data.plusOneCounters)..math.abs(data.plusOneCounters)) * widthPerDigit)
+
+            local rimSize = 30
+
+            local horizontalOffset = 0.69
+            local verticalOffset = 0.99 + loyaltyOffset
+            --tile size is about 500 for 1 unit
+
+            plusOneLabelString = ""..((data.plusOneCounters >= 0) and "+" or "")..data.plusOneCounters..'/'..((data.plusOneCounters >= 0) and "+" or "")..data.plusOneCounters.." "
+
+
+            t.object.createButton({
+                tooltip = "Add +10/+10\nRight-Click to Subtract",
+                click_function='receiveTenPlusOneClick',
+                function_owner=self,
+
+                position=
+                {
+                    (horizontalOffset)*flip*scaler.x,
+                    0.35*flip*scaler.z,
+                    -0.2 + (verticalOffset)*scaler.y
+                },
+
+                height= 60,
+                width= horizontalSize-40,
+                color = {0.3,0.3,0.3, 0.4},
+                hover_color = {1,1,1, 0.66},
+
+                scale = {1,1,0.5},
+
+                rotation={0,0,90-90*flip}
+            })
+
+            t.object.createButton({
+                click_function = 'doNothing',
+                function_owner = self,
+
+                height = verticalSize + rimSize + 16,
+                width = horizontalSize + rimSize,
+
+                color = {133/255,133/255,133/255},
+
+                position=
+                {
+                    (horizontalOffset)*flip*scaler.x,
+                    0.28*flip*scaler.z,
+                    (verticalOffset)*scaler.y
+                },
+
+                rotation={0,0,-90-90*flip}
+            })
+
+            t.object.createButton({
+                label=plusOneLabelString,
+                tooltip = "Right-Click to Subtract",
+
+                click_function='receivePlusOneClick',
+                function_owner=self,
+
+                position=
+                {
+                    (horizontalOffset)*flip*scaler.x,
+                    0.35*flip*scaler.z,
+                    (verticalOffset)*scaler.y
+                },
+
+                height= verticalSize,
+                width= horizontalSize,
+                color = {66/255,66/255,66/255},
+
+                font_size= 80,
+                font_color = {1,1,1},
+
+                rotation={0,0,90-90*flip}
+            })
+        end
+    end
+end
+
+--Display Functions
+function ToggleDisplayCounter (tar, ply)
+    enc = Global.getVar('Encoder')
+
+    if enc ~= nil then
+        data = enc.call("APIgetObjectData",{obj=tar,propID=pID})
+        data.displayCounters = not data.displayCounters
+
+        enc.call("APIsetObjectData",{obj=tar,propID=pID,data=data})
+        enc.call("APIrebuildButtons",{obj=tar})
+    end
+end
+
+function ToggleDisplayPowTou (tar, ply)
+    enc = Global.getVar('Encoder')
+
+    if enc ~= nil then
+        data = enc.call("APIgetObjectData",{obj=tar,propID=pID})
+        data.displayPowTou = not data.displayPowTou
+
+        enc.call("APIsetObjectData",{obj=tar,propID=pID,data=data})
+        enc.call("APIrebuildButtons",{obj=tar})
+    end
+end
+
+function ToggleDisplayPlusOne (tar, ply)
+    enc = Global.getVar('Encoder')
+
+    if enc ~= nil then
+        data = enc.call("APIgetObjectData",{obj=tar,propID=pID})
+        data.displayPlusOne = not data.displayPlusOne
+
+        enc.call("APIsetObjectData",{obj=tar,propID=pID,data=data})
+        enc.call("APIrebuildButtons",{obj=tar})
     end
 end
 
 --Editor Functions
-function tryParsing(object)
+function receiveCounterClick(tar,ply,alt)
+    local clickModifier = alt and -1 or 1
+    processCounterDelta(tar, ply, clickModifier)
+end
+
+function receiveTenCounterClick(tar,ply,alt)
+    local clickModifier = alt and -10 or 10
+    processCounterDelta(tar, ply, clickModifier)
+end
+
+function processCounterDelta(tar, ply, deltaCounter)
+    enc = Global.getVar('Encoder')
+
+    if enc ~= nil then
+        changeCounterCount(tar, deltaCounter)
+        
+        if type(ply) == "string" then
+            local selection =Player[ply].getSelectedObjects()
+            if selection ~= nil then
+                for k,v in pairs(selection) do
+                    if v ~= tar and enc.call("APIobjectExist",{obj=v}) == true then
+                        changeCounterCount(v, deltaCounter)
+                    end
+                end
+            end
+        else
+            enc.call("APIrebuildButtons",{obj=tar})
+        end
+    end
+end
+
+function changeCounterCount(tar, valueDelta)
     enc = Global.getVar('Encoder')
     if enc ~= nil then
-        data = enc.call("APIgetObjectData",{obj=object,propID=pID})
-        
-        if data.hasStats == nil then
-            local description = object.getDescription()
-            local power = getPowerFromCard(description)
-            local toughness = getToughnessFromCard(description)
+        data = enc.call("APIgetObjectData",{obj=tar,propID=pID})
+        data.genericCount = data.genericCount + valueDelta
 
-            if power ~= nil and toughness ~= nil then
-                data.hasStats = true
-                data.power = power
-                data.toughness = toughness
-            else
-                data.hasStats = false
-            end
-            
-            enc.call("APIsetObjectData",{obj=object,propID=pID,data=data})
-        end
-
-        return data.hasStats
+        enc.call("APIsetObjectData",{obj=tar,propID=pID,data=data})
+        enc.call("APIrebuildButtons",{obj=tar})
     end
 end
 
@@ -430,6 +732,144 @@ function changePowerAndToughness(tar, valueDeltaPow, valueDeltaTou)
     end
 end
 
+function receivePlusOneClick(tar,ply,alt)
+    local clickModifier = alt and -1 or 1
+    processPlusOneDelta(tar, ply, clickModifier)
+end
+
+function receiveTenPlusOneClick(tar,ply,alt)
+    local clickModifier = alt and -1 or 1
+    processPlusOneDelta(tar, ply, clickModifier * 10)
+end
+
+function processPlusOneDelta(tar, ply, deltaCounter)
+    enc = Global.getVar('Encoder')
+
+    if enc ~= nil then
+        changePlusOneCount(tar, deltaCounter)
+        
+        if type(ply) == "string" then
+            local selection =Player[ply].getSelectedObjects()
+            if selection ~= nil then
+                for k,v in pairs(selection) do
+                    if v ~= tar and enc.call("APIobjectExist",{obj=v}) == true then
+                        changePlusOneCount(v, deltaCounter)
+                    end
+                end
+            end
+        else
+            enc.call("APIrebuildButtons",{obj=tar})
+        end
+    end
+end
+
+function changePlusOneCount(tar, valueDelta)
+    enc = Global.getVar('Encoder')
+    if enc ~= nil then
+        data = enc.call("APIgetObjectData",{obj=tar,propID=pID})
+        data.plusOneCounters = data.plusOneCounters + valueDelta
+
+        enc.call("APIsetObjectData",{obj=tar,propID=pID,data=data})
+        enc.call("APIrebuildButtons",{obj=tar})
+    end
+end
+
+
+--Parse Functions
+function parseCardData(object)
+    enc = Global.getVar('Encoder')
+    if enc ~= nil then
+        data = enc.call("APIgetObjectData",{obj=object,propID=pID})
+        
+        if data.hasParsed == false then
+            data.hasParsed = true
+
+            local description = object.getDescription()
+
+            local loyaltyValue = getLoyaltyFromCard(description)
+
+            if loyaltyValue ~= nil then
+                data.genericCount = loyaltyValue
+                data.hasLoyalty = true
+            else
+                data.hasLoyalty = false
+                data.hasOtherCounter = hasKeywordOrNamedCounter(object)
+            end
+            data.displayCounters = autoActivateCounter and (data.hasLoyalty or data.hasOtherCounter)
+
+            local power = getPowerFromCard(description)
+            local toughness = getToughnessFromCard(description)
+
+            if power ~= nil and toughness ~= nil then
+                data.power = power
+                data.toughness = toughness
+
+                data.displayPowTou = autoActivatePowTou
+            else
+                data.displayPowTou = false
+            end
+            
+            if true then --just using this to make the plusone section collapsible
+                local typeLine = string.match(object.getName(),"\n.*")
+                if typeLine ~= nil and string.find(typeLine, "Creature") == nil then
+                    data.displayPlusOne = false
+                else
+                    local selfReferralString = {"it", object.getName():gsub('\n.*','')}
+
+                    local parsedValue
+                    for index, nameString in ipairs (selfReferralString) do
+                        parsedValue = string.match(description, "[%+%-]1/[%+%-]1 counters? on "..nameString)
+                        if parsedValue ~= nil then
+                            data.displayPlusOne = autoActivatePlusOne
+                            break
+                        end
+                    end
+                end
+            end
+
+            enc.call("APIsetObjectData",{obj=object,propID=pID,data=data})
+        end
+    end
+end
+
+function getLoyaltyFromCard(description)
+    local parsedValue = string.match(description,"]%d+%[")
+    local loyaltyValue
+    if parsedValue ~= nil then
+        loyaltyValue = string.match(parsedValue,"%d+")
+    end
+    return loyaltyValue
+end
+
+function hasKeywordOrNamedCounter(object)
+    local keywordCounters = {"Cumulative upkeep", "Suspend", "Vanishing", "Fading", "after III"}
+    description = object.getDescription()
+
+    for index, keywordString in ipairs(keywordCounters) do
+        if string.find(description, keywordString) then
+                return true
+        end
+    end
+    local namedCounterCheckParse
+    namedCounterCheckParse = string.match(object.getDescription(), "[pP]ut %a+ %a+ counters? on %a+")
+    if namedCounterCheckParse == nil then namedCounterCheckParse = string.match(object.getDescription(), "with %a+ %a+ counters? on %a+") end
+
+    local cardNameFirstWord = string.match(object.getName(), "%a+")
+
+    if namedCounterCheckParse ~= nil and (string.find(namedCounterCheckParse, " it") ~= nil or (cardNameFirstWord ~= nil and string.find(namedCounterCheckParse, " "..cardNameFirstWord)) ) ~= nil then
+        --this checks if it puts counters on itself, the space is to avoid false hits for other words
+        namedCounters = {"charge", "storage", "quest", "spore", "depletion", "ki", "verse"}
+
+        for index, counterName in ipairs(namedCounters) do
+            if string.find(namedCounterCheckParse, counterName) ~= nil then
+                return true
+            end
+        end
+    end
+    
+    return false
+end
+
 function getPowerFromCard(description)
     local parsedValue = string.match(description,"]([%d%*xX]+)/")
     local powerValue
@@ -448,6 +888,7 @@ function getToughnessFromCard(description)
     return toughnessValue
 end
 
+--Auto Functions
 function onObjectDropped(playerColor,object)
     if autoActivateModule == false or object.tag ~= "Card" then
         return
@@ -481,9 +922,7 @@ function autoActivate(dataTable)
             if enc.call("APIcheckEnabled", {obj=object, propID = pID}) == false then
                 enc.call("APItoggleProperty",{obj=object, propID = pID})
 
-                if tryParsing(object) == false then
-                    enc.call("APItoggleProperty",{obj=object, propID = pID})
-                end
+                parseCardData(object)
 
                 enc.call("APIrebuildButtons",{obj=object})
                 return
