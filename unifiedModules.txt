@@ -1,10 +1,14 @@
---Easy Power and Toughness
+--Easy Modules Freedom Unite
 --by @TyrantNomad
 --based on Power and Toughness by Tipsy Hobbit (steamid: 13465982)
 
-moduleVersion = "1.05"
-pID = "_MTG_Simplified_POWTOU"
+moduleVersion = "1.5"
+pID = "_MTG_Simplified_UNIFIED"
 autoActivateModule = true
+autoActivateCounter = true
+autoActivatePowTou = true
+autoActivatePlusOne = true
+
 isRegistered = false
 
 function onload(saved_data)
@@ -13,7 +17,7 @@ function onload(saved_data)
 end
 
 function onSave()
-    local data_to_save = {autoActivateModule}
+    local data_to_save = {autoActivateCounter,autoActivatePowTou,autoActivatePlusOne}
     saved_data = JSON.encode(data_to_save)
     return saved_data
 end
@@ -21,7 +25,9 @@ end
 function processSavedData(saved_data)
     if saved_data ~= nil and saved_data ~= "" then
         local loaded_data = JSON.decode(saved_data)
-        autoActivateModule = loaded_data.autoActivateModule
+        autoActivateCounter = loaded_data.autoActivateCounter
+        autoActivatePowTou = loaded_data.autoActivatePowTou
+        autoActivatePlusOne = loaded_data.autoActivatePlusOne
     end
 end
 
@@ -34,9 +40,24 @@ function createModuleChipButtons()
     end
 
     self.createButton({
+        label = "TyrantNomad's",
+        click_function=("doNothing"),
+        function_owner=self,
+
+        position={0,0.15,-0.4},
+        rotation = {0,0,0},
+
+        height=0,
+        width=0,
+
+        font_size = 60,
+        font_color = {1,156/255,196/255}
+    })
+
+    self.createButton({
         click_function="doNothing",
         function_owner=self,
-        position={0,0.15,-0.325},
+        position={0,0.15,-0.155},
         rotation={180,0,0},
 
         height= 116,
@@ -46,10 +67,10 @@ function createModuleChipButtons()
     })
 
     self.createButton({
-        label= "EASY POW/TOU",
+        label= "EASY MODULES",
         click_function="doNothing",
         function_owner=self,
-        position={0,0.15,-0.325},
+        position={0,0.15,-0.155},
 
         height= 0,
         width= 0,
@@ -61,51 +82,64 @@ function createModuleChipButtons()
     })
 
     self.createButton({
-        label = "AUTO "..(autoActivateModule and "ON" or "OFF"),
-        tooltip = "When ON, automatically activates the module on cards with pow/tou",
+        label = "VERSION "..moduleVersion,
+        click_function=("doNothing"),
+        function_owner=self,
 
-        click_function = "toggleAutoActivate",
-        function_owner = self,
+        position={0,0.15,0.075},
+        rotation = {0,0,0},
 
-        font_color = (autoActivateModule and {1,156/255,196/255} or {64/255,19/255,37/255}),
-        color = (autoActivateModule and {238/255, 25/255, 110/255} or {106/255, 29/255, 60/255}),
-        hover_color = {90/255,24/255,51/255},
+        height=0,
+        width=0,
 
-        position={0,0.15,0},
-
-        width = 600,
-        height = 80
+        font_size = 60,
+        font_color = {1,156/255,196/255}
     })
 
     self.createButton({
         label=(isRegistered and "REGISTERED" or "ADD MODULE"),
         click_function="doNothing",
         function_owner=self,
-        position={0,0.15,0.35},
+
+        position={0,0.15,0.33},
+
         height=0,
         width=0,
+
         font_size = 60,
+        font_color = (isRegistered and {1,156/255,196/255} or {90/255,24/255,51/255})
     })
 
     self.createButton({
         click_function=(isRegistered and "doNothing" or "registerModule"),
         function_owner=self,
-        position={0,0.15,0.35},
+
+        position={0,0.15,0.33},
         rotation = (isRegistered and {180,0,0} or {0,0,0}),
+
+        color = (isRegistered and {238/255, 25/255, 110/255} or {1,156/255,196/255}),
+        hover_color = {90/255,24/255,51/255},
+
         height=60,
         width=450,
-        font_size = 60,
     })
 
     self.createButton({
-        label = "version "..moduleVersion,
-        click_function=("doNothing"),
-        function_owner=self,
-        position={0,-0.15,0.35},
-        rotation = {180,0,0},
-        height=60,
-        width=450,
-        font_size = 60,
+        label = "AUTO "..(autoActivateModule and "ON" or "OFF"),
+        tooltip = "When ON, automatically activates the module on cards with pow/tou",
+
+        click_function = "toggleAutoActivate",
+        function_owner = self,
+
+        font_color = (autoActivateModule and {1,156/255,196/255} or {90/255,24/255,51/255}),
+        color = (autoActivateModule and {238/255, 25/255, 110/255} or {1,156/255,196/255}),
+        hover_color = {90/255,24/255,51/255},
+
+        position={0,-0.15,0},
+        rotation = {180,180,0},
+
+        width = 600,
+        height = 80
     })
 end
 
@@ -131,8 +165,11 @@ function registerModule()
     
     properties = {
     propID = pID,
-    name = " Easy Pow/Tou",
-    dataStruct = {power=0,toughness=0, hasStats},
+    name = " Easy Modules",
+    dataStruct = {
+        power=0, toughness=0, hasStats,
+        plusOneCounters=0, hasPlusOne,
+        genericCount = 0, hasGeneric, hasLoyalty},
     funcOwner = self,
     callOnActivate = false,
     activateFunc =''

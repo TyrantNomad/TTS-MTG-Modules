@@ -2,13 +2,27 @@
 --by @TyrantNomad
 --based on Power and Toughness by Tipsy Hobbit (steamid: 13465982)
 
-encVersion = 1
+moduleVersion = "1.05"
 pID = "_MTG_Simplified_PlusOneCounters"
 autoActivateModule = true
 isRegistered = false
 
-function onload()
+function onload(saved_data)
+    processSavedData(saved_data)
     createModuleChipButtons()
+end
+
+function onSave()
+    local data_to_save = {autoActivateModule}
+    saved_data = JSON.encode(data_to_save)
+    return saved_data
+end
+
+function processSavedData(saved_data)
+    if saved_data ~= nil and saved_data ~= "" then
+        local loaded_data = JSON.decode(saved_data)
+        autoActivateModule = loaded_data.autoActivateModule
+    end
 end
 
 function createModuleChipButtons()
@@ -83,6 +97,17 @@ function createModuleChipButtons()
         width=450,
         font_size = 60,
     })
+
+    self.createButton({
+        label = "version "..moduleVersion,
+        click_function=("doNothing"),
+        function_owner=self,
+        position={0,-0.15,0.35},
+        rotation = {180,0,0},
+        height=60,
+        width=450,
+        font_size = 60,
+    })
 end
 
 function clearModuleChipButtons()
@@ -100,6 +125,11 @@ end
 function registerModule()
   enc = Global.getVar('Encoder')
   if enc ~= nil then
+    if tonumber(enc.getVar("version")) < 3.18 then 
+        broadcastToAll("Encoder version too old. To use this module, manually upgrade it to v3.18+ or type 'plus encoder update' to attempt a forced update")
+        return
+    end
+    
     properties = {
     propID = pID,
     name = " Easy +1/+1",
@@ -318,7 +348,6 @@ function autoActivate(dataTable)
 
     local enc = Global.getVar('Encoder')
     if enc ~= nil then
-        broadcastToAll(enc.version)
         if enc.call("APIpropertyExists",{propID = pID}) == false then
             return
         
