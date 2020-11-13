@@ -1,4 +1,4 @@
---Easy Modules Freedom Unite
+--Easy Modules Unified
 --by @TyrantNomad
 --based on Power and Toughness by Tipsy Hobbit (steamid: 13465982)
 
@@ -25,10 +25,37 @@ end
 function processSavedData(saved_data)
     if saved_data ~= nil and saved_data ~= "" then
         local loaded_data = JSON.decode(saved_data)
-        autoActivateCounter = loaded_data.autoActivateCounter
-        autoActivatePowTou = loaded_data.autoActivatePowTou
-        autoActivatePlusOne = loaded_data.autoActivatePlusOne
+        autoActivateModule = loaded_data.autoActivateModule ~= nil and loaded_data.autoActivateModule or true
+        autoActivateCounter = loaded_data.autoActivateCounter ~= nil and loaded_data.autoActivateCounter or true
+        autoActivatePowTou = loaded_data.autoActivatePowTou ~= nil and loaded_data.autoActivatePowTou or true
+        autoActivatePlusOne = loaded_data.autoActivatePlusOne ~= nil and loaded_data.autoActivatePlusOne or true
     end
+end
+
+function forceEncoderUpdate(encoderCode)
+    encoderCode = encoderCode.text
+
+    encoder = Global.getVar('Encoder')
+    encoder.script_code = encoderCode
+    encoder.reload()
+end
+
+function forcePlaceholderEncoder(encoderCode)
+    encoderCode = encoderCode.text
+    spawnParams = {
+        type = "rpg_TROLL",
+        position = {0, 5, 0},
+        scale = {0.5, 0.5, 0.5},
+        sound = false,
+        callback_function = function(obj) attachEncoderToPlaceholder(obj, encoderCode) end
+    }
+
+    spawnObject(spawnParams)
+end
+
+function attachEncoderToPlaceholder (placeholderObject, encoderCode)
+    placeholderObject.script_code = encoderCode
+    placeholderObject.reload()
 end
 
 function createModuleChipButtons()
@@ -126,7 +153,7 @@ function createModuleChipButtons()
 
     self.createButton({
         label = "AUTO "..(autoActivateModule and "ON" or "OFF"),
-        tooltip = "When ON, automatically activates the module on cards with pow/tou",
+        tooltip = "When ON, automatically activates the module,\nshowing the easy-toggle menu on the left side of cards",
 
         click_function = "toggleAutoActivate",
         function_owner = self,
@@ -156,34 +183,49 @@ function refreshModuleChipButtons()
 end
 
 function registerModule()
-  enc = Global.getVar('Encoder')
-  if enc ~= nil then
-    if tonumber(enc.getVar("version")) < 3.18 then 
-        broadcastToAll("Encoder version too old. To use this module, manually upgrade it to v3.18+ or type 'pow encoder update' to attempt a forced update")
-        return
-    end
+    enc = Global.getVar('Encoder')
+    if enc ~= nil then
+        if tonumber(enc.getVar("version")) < 3.18 then 
+            broadcastToAll("Encoder version too old. To use this module, manually upgrade it to v3.18+ or type 'force encoder update' to attempt a forced update")
+            return
+        end
     
-    properties = {
-    propID = pID,
-    name = " Easy Modules",
-    dataStruct = {
-        hasParsed = false,
-        power=0, toughness=0,
-        plusOneCounters=0,
-        genericCount = 0, hasLoyalty = false, hasOtherCounter = false},
+        properties = {
+        propID = pID,
+        name = " Easy Modules",
+        dataStruct = {
+            hasParsed = false,
+            power=0, toughness=0,
+            plusOneCounters=0,
+            genericCount = 0, hasLoyalty = false, hasOtherCounter = false},
 
-        displayCounters = false,
-        displayPowTou = false,
-        displayPlusOne = false,
+            displayCounters = false,
+            displayPowTou = false,
+            displayPlusOne = false,
 
-        funcOwner = self,
-        callOnActivate = false,
-        activateFunc =''
-    }
-    enc.call("APIregisterProperty",properties)
+            funcOwner = self,
+            callOnActivate = false,
+            activateFunc =''
+        }
+        enc.call("APIregisterProperty",properties)
 
-    refreshModuleChipButtons()
-  end
+        refreshModuleChipButtons()
+    else
+        broadcastToAll("No encoder found. You need Encoder v3.18+ by Tipsy Hobbit (steamid: 13465982) to use the module")
+        broadcastToAll("Get the Encoder from the Steam Workshop or type 'force encoder temporary' to spawn a placeholder")
+    end
+end
+
+function onChat(message, player)
+    message = string.lower(message)
+
+    if string.find(message,'force encoder') ~= nil then
+        if string.find (message,'encoder update') ~= nil then
+            WebRequest.get("https://raw.githubusercontent.com/Jophire/Tabletop-Simulator-Workshop-Items/master/Encoder/Encoder%20Core.lua", self, "forceEncoderUpdate")
+        elseif string.find (message,'encoder temporary') ~= nil then
+            WebRequest.get("https://raw.githubusercontent.com/Jophire/Tabletop-Simulator-Workshop-Items/master/Encoder/Encoder%20Core.lua", self, "forcePlaceholderEncoder")
+        end
+    end
 end
 
 function toggleAutoActivate()
@@ -200,7 +242,7 @@ function createButtons(t)
         flip = enc.call("APIgetFlip",{obj=t.object})
         scaler = {x=1,y=1,z=1}--t.object.getScale()
 
-        if true then --toggle display buttons
+        if true then --toggle display buttons collapsible section
             buttonBackgroundColorOff = {0,0,0,  0.7}
             buttonBackgroundColorOn = {0,0,0, 0.9}
 
@@ -356,7 +398,6 @@ function createButtons(t)
 
                 rotation={0,0,90-90*flip}
             })
-
         end
 
         --powtou buttons
@@ -892,6 +933,10 @@ end
 function onObjectDropped(playerColor,object)
     if autoActivateModule == false or object.tag ~= "Card" then
         return
+    end
+
+    if enc.call("APIobjectExist",{obj=object}) == false and object.getVar('noencode') == nil then
+        enc.call("APIaddObject",{obj=object})
     end
 
     timerId = "autoActivate"..pID.."for"..object.guid
