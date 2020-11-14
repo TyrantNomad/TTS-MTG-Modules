@@ -656,7 +656,8 @@ function createButtons(t)
     end
 end
 
-function PropagatableFunctionCall (dataTable)
+--Propagatable Value Change Functions
+function PropagateValueChange (dataTable)
     --datatable needs target, player, varName & varDelta
     -- so for bools we want to set and for floats we want to add
     enc = Global.getVar('Encoder')
@@ -706,44 +707,30 @@ function UpdateEncoderDataValue (dataTable)
     enc.call("APIrebuildButtons",{obj = dataTable.target})
 end
 
---Display Functions
-function ToggleDisplayCounter (tar, ply)
-    enc = Global.getVar('Encoder')
-
-    if enc ~= nil then
-        data = enc.call("APIgetObjectData",{obj=tar,propID=pID})
-        data.displayCounters = not data.displayCounters
-
-        enc.call("APIsetObjectData",{obj=tar,propID=pID,data=data})
-        enc.call("APIrebuildButtons",{obj=tar})
-    end
+function ToggleDisplayCounter (tar, ply, alt)
+    dataTable = GetClickDataTable(tar, ply, alt)
+    data = dataTable.encoder.call("APIgetObjectData",{obj=tar,propID=pID})
+    dataTable.varDelta = not data.displayCounters
+    dataTable.varName = "displayCounters"
+    PropagateValueChange(dataTable)
 end
 
-function ToggleDisplayPowTou (tar, ply)
-    enc = Global.getVar('Encoder')
-
-    if enc ~= nil then
-        data = enc.call("APIgetObjectData",{obj=tar,propID=pID})
-        data.displayPowTou = not data.displayPowTou
-
-        enc.call("APIsetObjectData",{obj=tar,propID=pID,data=data})
-        enc.call("APIrebuildButtons",{obj=tar})
-    end
+function ToggleDisplayPowTou (tar, ply, alt)
+    dataTable = GetClickDataTable(tar, ply, alt)
+    data = dataTable.encoder.call("APIgetObjectData",{obj=tar,propID=pID})
+    dataTable.varDelta = not data.displayPowTou
+    dataTable.varName = "displayPowTou"
+    PropagateValueChange(dataTable)
 end
 
-function ToggleDisplayPlusOne (tar, ply)
-    enc = Global.getVar('Encoder')
-
-    if enc ~= nil then
-        data = enc.call("APIgetObjectData",{obj=tar,propID=pID})
-        data.displayPlusOne = not data.displayPlusOne
-
-        enc.call("APIsetObjectData",{obj=tar,propID=pID,data=data})
-        enc.call("APIrebuildButtons",{obj=tar})
-    end
+function ToggleDisplayPlusOne (tar, ply, alt)
+    dataTable = GetClickDataTable(tar, ply, alt)
+    data = dataTable.encoder.call("APIgetObjectData",{obj=tar,propID=pID})
+    dataTable.varDelta = not data.displayPlusOne
+    dataTable.varName = "displayPlusOne"
+    PropagateValueChange(dataTable)
 end
 
---Editor Functions
 function GetClickDataTable (tar, ply, alt)
     enc = Global.getVar('Encoder')
     if enc ~= nil then
@@ -755,133 +742,52 @@ function GetClickDataTable (tar, ply, alt)
 end
 
 function receiveCounterClick(tar,ply,alt)
-    local clickModifier = alt and -1 or 1
-    processCounterDelta(tar, ply, clickModifier)
+    dataTable = GetClickDataTable(tar, ply, alt)
+    dataTable.varDelta = alt and -1 or 1
+    dataTable.varName = "genericCount"
+    PropagateValueChange(dataTable)
 end
 
 function receiveTenCounterClick(tar,ply,alt)
-    local clickModifier = alt and -10 or 10
-    processCounterDelta(tar, ply, clickModifier)
-end
-
-function processCounterDelta(tar, ply, alt)
     dataTable = GetClickDataTable(tar, ply, alt)
+    dataTable.varDelta = alt and -10 or 10
     dataTable.varName = "genericCount"
-    dataTable.varDelta = alt
-
-    PropagatableFunctionCall(dataTable)
-end
-
-function changeCounterCount(dataTable)
-    enc = Global.getVar('Encoder')
-    if enc ~= nil then
-        data = enc.call("APIgetObjectData",{obj=tar,propID=pID})
-        broadcastToAll(tostring(data[genericCount]))
-        data.genericCount = data.genericCount + valueDelta
-
-        enc.call("APIsetObjectData",{obj=tar,propID=pID,data=data})
-        enc.call("APIrebuildButtons",{obj=tar})
-    end
+    PropagateValueChange(dataTable)
 end
 
 function receivePowerClick(tar,ply,alt)
-    local clickModifier = alt and -1 or 1
-    processStatDelta(tar, ply, clickModifier, 0)
+    dataTable = GetClickDataTable(tar, ply, alt)
+    dataTable.varDelta = alt and -1 or 1
+    dataTable.varName = "power"
+    PropagateValueChange(dataTable)
 end
 
 function receiveToughnessClick(tar,ply,alt)
-    local clickModifier = alt and -1 or 1
-    processStatDelta(tar, ply, 0, clickModifier)
+    dataTable = GetClickDataTable(tar, ply, alt)
+    dataTable.varDelta = alt and -1 or 1
+    dataTable.varName = "toughness"
+    PropagateValueChange(dataTable)
 end
 
 function receivePowTouClick(tar,ply,alt)
-    local clickModifier = alt and -1 or 1
-    processStatDelta(tar, ply, clickModifier, clickModifier)
-end
-
-function processStatDelta(tar, ply, deltaPow, deltaTou)
-    enc = Global.getVar('Encoder')
-
-    if enc ~= nil then
-        changePowerAndToughness(tar, deltaPow, deltaTou)
-        
-        if type(ply) == "string" then
-            local selection =Player[ply].getSelectedObjects()
-            if selection ~= nil then
-                for k,v in pairs(selection) do
-                    if v ~= tar and enc.call("APIobjectExist",{obj=v}) == true then
-                        changePowerAndToughness(v, deltaPow, deltaTou)
-                    end
-                end
-            end
-        else
-            enc.call("APIrebuildButtons",{obj=tar})
-        end
-    end
-end
-
-function changePowerAndToughness(tar, valueDeltaPow, valueDeltaTou)
-    enc = Global.getVar('Encoder')
-    if enc ~= nil then
-        data = enc.call("APIgetObjectData",{obj=tar,propID=pID})
-
-        if valueDeltaPow ~= 0 then
-            data.power = tonumber(data.power) ~= nil and data.power or 0
-            data.power = data.power + valueDeltaPow
-        end
-
-        if valueDeltaTou ~= 0 then
-            data.toughness = tonumber(data.toughness) ~= nil and data.toughness or 0
-            data.toughness = data.toughness + valueDeltaTou
-        end
-
-        enc.call("APIsetObjectData",{obj=tar,propID=pID,data=data})
-        enc.call("APIrebuildButtons",{obj=tar})
-    end
+    receivePowerClick(tar,ply,alt)
+    receiveToughnessClick(tar,ply,alt)
+    --inefficient but propagating doesn't support changing two values atm
 end
 
 function receivePlusOneClick(tar,ply,alt)
-    local clickModifier = alt and -1 or 1
-    processPlusOneDelta(tar, ply, clickModifier)
+    dataTable = GetClickDataTable(tar, ply, alt)
+    dataTable.varDelta = alt and -1 or 1
+    dataTable.varName = "plusOneCounters"
+    PropagateValueChange(dataTable)
 end
 
 function receiveTenPlusOneClick(tar,ply,alt)
-    local clickModifier = alt and -1 or 1
-    processPlusOneDelta(tar, ply, clickModifier * 10)
+    dataTable = GetClickDataTable(tar, ply, alt)
+    dataTable.varDelta = alt and -10 or 10
+    dataTable.varName = "plusOneCounters"
+    PropagateValueChange(dataTable)
 end
-
-function processPlusOneDelta(tar, ply, deltaCounter)
-    enc = Global.getVar('Encoder')
-
-    if enc ~= nil then
-        changePlusOneCount(tar, deltaCounter)
-        
-        if type(ply) == "string" then
-            local selection =Player[ply].getSelectedObjects()
-            if selection ~= nil then
-                for k,v in pairs(selection) do
-                    if v ~= tar and enc.call("APIobjectExist",{obj=v}) == true then
-                        changePlusOneCount(v, deltaCounter)
-                    end
-                end
-            end
-        else
-            enc.call("APIrebuildButtons",{obj=tar})
-        end
-    end
-end
-
-function changePlusOneCount(tar, valueDelta)
-    enc = Global.getVar('Encoder')
-    if enc ~= nil then
-        data = enc.call("APIgetObjectData",{obj=tar,propID=pID})
-        data.plusOneCounters = data.plusOneCounters + valueDelta
-
-        enc.call("APIsetObjectData",{obj=tar,propID=pID,data=data})
-        enc.call("APIrebuildButtons",{obj=tar})
-    end
-end
-
 
 --Parse Functions
 function parseCardData(object)
