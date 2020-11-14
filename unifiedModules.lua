@@ -4,10 +4,6 @@
 
 moduleVersion = "1.5"
 pID = "_MTG_Simplified_UNIFIED"
-autoActivateModule = true
-autoActivateCounter = true
-autoActivatePowTou = true
-autoActivatePlusOne = true
 
 isRegistered = false
 
@@ -20,10 +16,14 @@ end
 
 function onSave()
     local data_to_save = {autoActivateCounter,autoActivatePowTou,autoActivatePlusOne}
-    saved_data = JSON.encode(data_to_save)
+    local saved_data = JSON.encode(data_to_save)
     return saved_data
 end
 
+autoActivateModule = true
+autoActivateCounter = true
+autoActivatePowTou = true
+autoActivatePlusOne = true
 function processSavedData(saved_data)
     if saved_data ~= nil and saved_data ~= "" then
         local loaded_data = JSON.decode(saved_data)
@@ -50,15 +50,15 @@ function tryAutoRegister(data)
 end
 
 function forceEncoderUpdate(encoderCode)
-    encoderCode = encoderCode.text
+    local encoderCode = encoderCode.text
 
-    encoder = Global.getVar('Encoder')
+    local encoder = Global.getVar('Encoder')
     encoder.script_code = encoderCode
     encoder.reload()
 end
 
 function forcePlaceholderEncoder(encoderCode)
-    encoderCode = encoderCode.text
+    local encoderCode = encoderCode.text
     spawnParams = {
         type = "rpg_TROLL",
         position = {0, 5, 0},
@@ -76,7 +76,7 @@ function attachEncoderToPlaceholder (placeholderObject, encoderCode)
 end
 
 function createModuleChipButtons()
-    enc = Global.getVar('Encoder')
+    local enc = Global.getVar('Encoder')
     if enc ~= nil then
         isRegistered = enc.call("APIpropertyExists",{propID = pID})
     else
@@ -188,7 +188,7 @@ function createModuleChipButtons()
 end
 
 function clearModuleChipButtons()
-    chipButtons = self.getButtons()
+    local chipButtons = self.getButtons()
     for index,button in pairs(chipButtons) do
         self.removeButton(index -1)
     end
@@ -202,25 +202,26 @@ end
 function registerModule()
     if isRegistered then return end
 
-    enc = Global.getVar('Encoder')
+    local enc = Global.getVar('Encoder')
     if enc ~= nil then
         if tonumber(enc.getVar("version")) < 3.18 then 
             broadcastToAll("Encoder version too old. To use this module, manually upgrade it to v3.18+ or type 'force encoder update' to attempt a forced update")
             return
         end
     
-        properties = {
-        propID = pID,
-        name = " Easy Modules",
-        dataStruct = {
-            hasParsed = false,
-            power=0, toughness=0,
-            plusOneCounters=0,
-            genericCount = 0, hasLoyalty = false, hasOtherCounter = false},
+        local properties = {
+            propID = pID,
+            name = " Easy Modules Unified",
+            dataStruct = {
+                hasParsed = false,
 
-            displayCounters = false,
-            displayPowTou = false,
-            displayPlusOne = false,
+                power=0, toughness=0,
+                plusOneCounters=0,
+                genericCount = 0, hasLoyalty = false, hasOtherCounter = false,
+
+                displayCounters = false,
+                displayPowTou = false,
+                displayPlusOne = false},
 
             funcOwner = self,
             callOnActivate = false,
@@ -236,7 +237,7 @@ function registerModule()
 end
 
 function onChat(message, player)
-    message = string.lower(message)
+    local message = string.lower(message)
 
     if string.find(message,'force encoder') ~= nil then
         if string.find (message,'encoder update') ~= nil then
@@ -257,22 +258,22 @@ function createButtons(t)
     enc = Global.getVar('Encoder')
 
     if enc ~= nil then
-        data = enc.call("APIgetObjectData",{obj=t.object,propID=pID})
-        flip = enc.call("APIgetFlip",{obj=t.object})
-        scaler = {x=1,y=1,z=1}--t.object.getScale()
+        local data = enc.call("APIgetObjectData",{obj=t.object,propID=pID})
+        local flip = enc.call("APIgetFlip",{obj=t.object})
+        local scaler = {x=1,y=1,z=1}--t.object.getScale()
 
         if true then --toggle display buttons collapsible section
-            buttonBackgroundColorOff = {0,0,0,  0.7}
-            buttonBackgroundColorOn = {0,0,0, 0.9}
+            local buttonBackgroundColorOff = {0,0,0,  0.7}
+            local buttonBackgroundColorOn = {0,0,0, 0.9}
 
-            buttonTextColorOff = {0.8,0.8,0.8, 0.8}
-            buttonTextColorOn = {1,0.8,0.4, 0.7}
-            buttonTextSize = 55
+            local buttonTextColorOff = {0.8,0.8,0.8, 0.8}
+            local buttonTextColorOn = {1,0.8,0.4, 0.7}
+            local buttonTextSize = 55
 
-            buttonHoverColor = {0,0,0,1}
+            local buttonHoverColor = {0,0,0,1}
 
-            verticalSpacing = 0.2
-            buttonDimensions = 90
+            local verticalSpacing = 0.2
+            local buttonDimensions = 90
 
             t.object.createButton({
                 click_function = 'ToggleDisplayCounter',
@@ -339,7 +340,7 @@ function createButtons(t)
         end
 
         parseCardData(t.object)
-        loyaltyOffset = (data.displayCounters and data.hasLoyalty) and -0.3 or 0
+        local loyaltyOffset = (data.displayCounters and data.hasLoyalty) and -0.3 or 0
         
         --simplecounter buttons
         if data.displayCounters then
@@ -658,9 +659,9 @@ end
 
 --Propagatable Value Change Functions
 function PropagateValueChange (dataTable)
-    --datatable needs target, player, varName & varDelta
+    --dataTable needs target, player, varName & varDelta
     -- so for bools we want to set and for floats we want to add
-    enc = Global.getVar('Encoder')
+    local enc = Global.getVar('Encoder')
 
     if type(dataTable.player) == "string" then
         local selection = Player[dataTable.player].getSelectedObjects()
@@ -700,7 +701,7 @@ function UpdateEncoderDataValue (dataTable)
         end
     else
         broadcastToAll("Overriding nil value")
-        objectData[dataTable.varName] = datatable.varDelta
+        objectData[dataTable.varName] = dataTable.varDelta
     end
 
     dataTable.encoder.call("APIsetObjectData",{obj = dataTable.target, propID = pID, data = objectData})
@@ -708,31 +709,31 @@ function UpdateEncoderDataValue (dataTable)
 end
 
 function ToggleDisplayCounter (tar, ply, alt)
-    dataTable = GetClickDataTable(tar, ply, alt)
-    data = dataTable.encoder.call("APIgetObjectData",{obj=tar,propID=pID})
+    local dataTable = GetClickdataTable(tar, ply, alt)
+    local data = dataTable.encoder.call("APIgetObjectData",{obj=tar,propID=pID})
     dataTable.varDelta = not data.displayCounters
     dataTable.varName = "displayCounters"
     PropagateValueChange(dataTable)
 end
 
 function ToggleDisplayPowTou (tar, ply, alt)
-    dataTable = GetClickDataTable(tar, ply, alt)
-    data = dataTable.encoder.call("APIgetObjectData",{obj=tar,propID=pID})
+    local dataTable = GetClickdataTable(tar, ply, alt)
+    local data = dataTable.encoder.call("APIgetObjectData",{obj=tar,propID=pID})
     dataTable.varDelta = not data.displayPowTou
     dataTable.varName = "displayPowTou"
     PropagateValueChange(dataTable)
 end
 
 function ToggleDisplayPlusOne (tar, ply, alt)
-    dataTable = GetClickDataTable(tar, ply, alt)
-    data = dataTable.encoder.call("APIgetObjectData",{obj=tar,propID=pID})
+    local dataTable = GetClickdataTable(tar, ply, alt)
+    local data = dataTable.encoder.call("APIgetObjectData",{obj=tar,propID=pID})
     dataTable.varDelta = not data.displayPlusOne
     dataTable.varName = "displayPlusOne"
     PropagateValueChange(dataTable)
 end
 
-function GetClickDataTable (tar, ply, alt)
-    enc = Global.getVar('Encoder')
+function GetClickdataTable (tar, ply, alt)
+    local enc = Global.getVar('Encoder')
     if enc ~= nil then
         local dataTable = {encoder = enc, target = tar, player = ply, alt_click = alt, varName, varDelta}
         return dataTable
@@ -742,28 +743,28 @@ function GetClickDataTable (tar, ply, alt)
 end
 
 function receiveCounterClick(tar,ply,alt)
-    dataTable = GetClickDataTable(tar, ply, alt)
+    local dataTable = GetClickdataTable(tar, ply, alt)
     dataTable.varDelta = alt and -1 or 1
     dataTable.varName = "genericCount"
     PropagateValueChange(dataTable)
 end
 
 function receiveTenCounterClick(tar,ply,alt)
-    dataTable = GetClickDataTable(tar, ply, alt)
+    local dataTable = GetClickdataTable(tar, ply, alt)
     dataTable.varDelta = alt and -10 or 10
     dataTable.varName = "genericCount"
     PropagateValueChange(dataTable)
 end
 
 function receivePowerClick(tar,ply,alt)
-    dataTable = GetClickDataTable(tar, ply, alt)
+    local dataTable = GetClickdataTable(tar, ply, alt)
     dataTable.varDelta = alt and -1 or 1
     dataTable.varName = "power"
     PropagateValueChange(dataTable)
 end
 
 function receiveToughnessClick(tar,ply,alt)
-    dataTable = GetClickDataTable(tar, ply, alt)
+    local dataTable = GetClickdataTable(tar, ply, alt)
     dataTable.varDelta = alt and -1 or 1
     dataTable.varName = "toughness"
     PropagateValueChange(dataTable)
@@ -776,14 +777,14 @@ function receivePowTouClick(tar,ply,alt)
 end
 
 function receivePlusOneClick(tar,ply,alt)
-    dataTable = GetClickDataTable(tar, ply, alt)
+    local dataTable = GetClickdataTable(tar, ply, alt)
     dataTable.varDelta = alt and -1 or 1
     dataTable.varName = "plusOneCounters"
     PropagateValueChange(dataTable)
 end
 
 function receiveTenPlusOneClick(tar,ply,alt)
-    dataTable = GetClickDataTable(tar, ply, alt)
+    local dataTable = GetClickdataTable(tar, ply, alt)
     dataTable.varDelta = alt and -10 or 10
     dataTable.varName = "plusOneCounters"
     PropagateValueChange(dataTable)
@@ -791,9 +792,9 @@ end
 
 --Parse Functions
 function parseCardData(object)
-    enc = Global.getVar('Encoder')
+    local enc = Global.getVar('Encoder')
     if enc ~= nil then
-        data = enc.call("APIgetObjectData",{obj=object,propID=pID})
+        local data = enc.call("APIgetObjectData",{obj=object,propID=pID})
         
         if data.hasParsed == false then
             data.hasParsed = true
@@ -857,7 +858,7 @@ end
 
 function hasKeywordOrNamedCounter(object)
     local keywordCounters = {"Cumulative upkeep", "Suspend", "Vanishing", "Fading", "after III"}
-    description = object.getDescription()
+    local description = object.getDescription()
 
     for index, keywordString in ipairs(keywordCounters) do
         if string.find(description, keywordString) then
@@ -903,8 +904,9 @@ function getToughnessFromCard(description)
 end
 
 --Auto Functions
-function onObjectDropped(playerColor,object)
-    if autoActivateModule == false or object.tag ~= "Card" then
+function onObjectDropped(player, object)
+    local enc = Global.getVar('Encoder')
+    if enc == nil or autoActivateModule == false or object.tag ~= "Card" then
         return
     end
 
@@ -926,23 +928,21 @@ function onObjectDropped(playerColor,object)
 end
 
 function autoActivate(dataTable)
-    object = dataTable.obj
-
     local enc = Global.getVar('Encoder')
     if enc ~= nil then
         if enc.call("APIpropertyExists",{propID = pID}) == false then
             return
         
-        elseif enc.call("APIobjectExist", {obj=object}) ~= nil then
-            local data = enc.call("APIgetObjectData",{obj=object,propID=pID})
+        elseif enc.call("APIobjectExist", {obj=dataTable.obj}) ~= nil then
+            local data = enc.call("APIgetObjectData",{obj=dataTable.obj,propID=pID})
             if data ~= nil and data.hasStats ~= nil then return end
 
-            if enc.call("APIcheckEnabled", {obj=object, propID = pID}) == false then
-                enc.call("APItoggleProperty",{obj=object, propID = pID})
+            if enc.call("APIcheckEnabled", {obj=dataTable.obj, propID = pID}) == false then
+                enc.call("APItoggleProperty",{obj=dataTable.obj, propID = pID})
 
-                parseCardData(object)
+                parseCardData(dataTable.obj)
 
-                enc.call("APIrebuildButtons",{obj=object})
+                enc.call("APIrebuildButtons",{obj=dataTable.obj})
                 return
             end
         end
