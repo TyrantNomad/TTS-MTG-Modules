@@ -36,7 +36,6 @@ end
 
 function tryAutoRegister(data)
     if data.recursiveCall then
-        broadcastToAll(tostring(data[recursiveCall]))
         registerModule()
     else
         local dataTable = {recursiveCall=true}
@@ -658,25 +657,53 @@ function createButtons(t)
 end
 
 function PropagatableFunctionCall (dataTable)
-    --datatable needs targetObject, player & function call
+    --datatable needs target, player, varName & varDelta
+    -- so for bools we want to set and for floats we want to add
     enc = Global.getVar('Encoder')
 
-    if enc ~= nil then
-        if type(dataTable.callingPlayer) == "string" then
+    if type(dataTable.player) == "string" then
+        local selection = Player[dataTable.player].getSelectedObjects()
 
-            local selection = Player[player].getSelectedObjects()
-
-            if selection ~= nil then
-                for key, value in pairs(selection) do
-                    if enc.call("APIobjectExist",{obj=value}) == true then
-                        self.call(tostring(dataTable.func),{target = value, delta = dataTable.delta})
-                    end
+        if next(selection) ~= nil then
+            for key, value in pairs(selection) do
+                if enc.call("APIobjectExist",{obj=value}) == true then
+                    dataTable.target = value
+                    UpdateEncoderDataValue (dataTable)
                 end
-            else
-                self.call(tostring(dataTable.func),{target = dataTable.target, delta = dataTable.delta})
             end
+        else
+            UpdateEncoderDataValue (dataTable)
         end
     end
+end
+
+function UpdateEncoderDataValue (dataTable)
+    local objectData = dataTable.encoder.call("APIgetObjectData",{obj = dataTable.target, propID = pID})
+
+    if objectData[dataTable.varName] ~= nil then
+        if type(dataTable.varDelta) == "number" then
+            if type(objectData[dataTable.varName]) ==  "number" then
+                objectData[dataTable.varName] = objectData[dataTable.varName] + dataTable.varDelta
+            else
+                broadcastToAll("Type mismatch in value update attempt, received "..tostring(dataTable.varDelta).." against "..tostring(objectData[dataTable.varName]))
+                broadcastToAll(type(dataTable.varDelta).."  "..type(objectData[dataTable.varName]))
+            end
+        elseif type(dataTable.varDelta) == "boolean" then
+            if type(objectData[dataTable.varName]) ==  "boolean" then
+                objectData[dataTable.varName] = dataTable.varDelta
+            else
+                broadcastToAll("Type mismatch in value update attempt, received "..tostring(dataTable.varDelta).." against "..tostring(objectData[dataTable.varName]))
+            end
+        else
+            broadcastToAll("Error in value update attempt, received "..tostring(dataTable.varDelta))
+        end
+    else
+        broadcastToAll("Overriding nil value")
+        objectData[dataTable.varName] = datatable.varDelta
+    end
+
+    dataTable.encoder.call("APIsetObjectData",{obj = dataTable.target, propID = pID, data = objectData})
+    enc.call("APIrebuildButtons",{obj = dataTable.target})
 end
 
 --Display Functions
@@ -717,6 +744,16 @@ function ToggleDisplayPlusOne (tar, ply)
 end
 
 --Editor Functions
+function GetClickDataTable (tar, ply, alt)
+    enc = Global.getVar('Encoder')
+    if enc ~= nil then
+        local dataTable = {encoder = enc, target = tar, player = ply, alt_click = alt, varName, varDelta}
+        return dataTable
+    else
+        tryAutoRegister()
+    end
+end
+
 function receiveCounterClick(tar,ply,alt)
     local clickModifier = alt and -1 or 1
     processCounterDelta(tar, ply, clickModifier)
@@ -727,8 +764,11 @@ function receiveTenCounterClick(tar,ply,alt)
     processCounterDelta(tar, ply, clickModifier)
 end
 
-function processCounterDelta(tar, ply, deltaCounter)
-    local dataTable = {func = "changeCounterCount", delta = deltaCounter, player = ply, target = tar}
+function processCounterDelta(tar, ply, alt)
+    dataTable = GetClickDataTable(tar, ply, alt)
+    dataTable.varName = "genericCount"
+    dataTable.varDelta = alt
+
     PropagatableFunctionCall(dataTable)
 end
 
@@ -857,7 +897,7 @@ function parseCardData(object)
             local loyaltyValue = getLoyaltyFromCard(description)
 
             if loyaltyValue ~= nil then
-                data.genericCount = loyaltyValue
+                data.genericCount = tonumber(loyaltyValue)
                 data.hasLoyalty = true
             else
                 data.hasLoyalty = false
@@ -869,8 +909,8 @@ function parseCardData(object)
             local toughness = getToughnessFromCard(description)
 
             if power ~= nil and toughness ~= nil then
-                data.power = power
-                data.toughness = toughness
+                data.power = tonumber(power)
+                data.toughness = tonumber(toughness)
 
                 data.displayPowTou = autoActivatePowTou
             else
