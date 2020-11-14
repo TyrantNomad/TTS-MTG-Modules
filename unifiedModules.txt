@@ -12,7 +12,9 @@ autoActivatePlusOne = true
 isRegistered = false
 
 function onload(saved_data)
+    local dataTable = {recursiveCall=false}
     processSavedData(saved_data)
+    tryAutoRegister(dataTable)
     createModuleChipButtons()
 end
 
@@ -29,6 +31,22 @@ function processSavedData(saved_data)
         autoActivateCounter = loaded_data.autoActivateCounter ~= nil and loaded_data.autoActivateCounter or true
         autoActivatePowTou = loaded_data.autoActivatePowTou ~= nil and loaded_data.autoActivatePowTou or true
         autoActivatePlusOne = loaded_data.autoActivatePlusOne ~= nil and loaded_data.autoActivatePlusOne or true
+    end
+end
+
+function tryAutoRegister(data)
+    if data.recursiveCall then
+        broadcastToAll("hello")
+        registerModule()
+    else
+        local dataTable = {recursiveCall=true}
+        Timer.create({
+            identifier = "unifiedModuleAutoRegister",
+            function_name = "tryAutoRegister",
+            function_owner = self,
+            parameters = dataTable,
+            delay = 5
+        })
     end
 end
 
@@ -183,6 +201,8 @@ function refreshModuleChipButtons()
 end
 
 function registerModule()
+    if isRegistered then return end
+
     enc = Global.getVar('Encoder')
     if enc ~= nil then
         if tonumber(enc.getVar("version")) < 3.18 then 
