@@ -36,7 +36,7 @@ end
 
 function tryAutoRegister(data)
     if data.recursiveCall then
-        broadcastToAll("hello")
+        broadcastToAll(tostring(data[recursiveCall]))
         registerModule()
     else
         local dataTable = {recursiveCall=true}
@@ -657,6 +657,28 @@ function createButtons(t)
     end
 end
 
+function PropagatableFunctionCall (dataTable)
+    --datatable needs targetObject, player & function call
+    enc = Global.getVar('Encoder')
+
+    if enc ~= nil then
+        if type(dataTable.callingPlayer) == "string" then
+
+            local selection = Player[player].getSelectedObjects()
+
+            if selection ~= nil then
+                for key, value in pairs(selection) do
+                    if enc.call("APIobjectExist",{obj=value}) == true then
+                        self.call(tostring(dataTable.func),{target = value, delta = dataTable.delta})
+                    end
+                end
+            else
+                self.call(tostring(dataTable.func),{target = dataTable.target, delta = dataTable.delta})
+            end
+        end
+    end
+end
+
 --Display Functions
 function ToggleDisplayCounter (tar, ply)
     enc = Global.getVar('Encoder')
@@ -706,30 +728,15 @@ function receiveTenCounterClick(tar,ply,alt)
 end
 
 function processCounterDelta(tar, ply, deltaCounter)
-    enc = Global.getVar('Encoder')
-
-    if enc ~= nil then
-        changeCounterCount(tar, deltaCounter)
-        
-        if type(ply) == "string" then
-            local selection =Player[ply].getSelectedObjects()
-            if selection ~= nil then
-                for k,v in pairs(selection) do
-                    if v ~= tar and enc.call("APIobjectExist",{obj=v}) == true then
-                        changeCounterCount(v, deltaCounter)
-                    end
-                end
-            end
-        else
-            enc.call("APIrebuildButtons",{obj=tar})
-        end
-    end
+    local dataTable = {func = "changeCounterCount", delta = deltaCounter, player = ply, target = tar}
+    PropagatableFunctionCall(dataTable)
 end
 
-function changeCounterCount(tar, valueDelta)
+function changeCounterCount(dataTable)
     enc = Global.getVar('Encoder')
     if enc ~= nil then
         data = enc.call("APIgetObjectData",{obj=tar,propID=pID})
+        broadcastToAll(tostring(data[genericCount]))
         data.genericCount = data.genericCount + valueDelta
 
         enc.call("APIsetObjectData",{obj=tar,propID=pID,data=data})
