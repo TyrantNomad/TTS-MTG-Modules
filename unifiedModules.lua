@@ -344,11 +344,14 @@ function createButtons(t)
                 }
             })
         end
-
         
         local loyaltyOffset = (data.displayCounters and data.hasLoyalty) and -0.3 or 0
         local colorLightGrey = {133/255,133/255,133/255}
         local colorDarkGrey = {55/255,55/255,55/255}
+        local colorCardBorderBlack = {19/255,16/255,12/255}
+
+        local hexTooltipLowlight = "[BBBBBB]"
+
         --simplecounter buttons
         if data.displayCounters then
             local verticalSize = 130
@@ -668,14 +671,28 @@ function createButtons(t)
         end
 
         if true then --toggle ownership buttons collapsible section
-            local verticalOffset = 1.375
-            local verticalSize = 160
-            local horizontalSize = 160
+            local verticalOffset = 1.345
+            local verticalSize = 280
+            local horizontalSize = 500
+            local buttonScale = {0.375,0.375,0.375} -- used to fix weird scaling issues on small size values
+            
+            local cardOwner = data.ownerColor == nil and "Grey" or data.ownerColor
+            local ownershipColor = Color.fromString(cardOwner)
+            local ownerColorHex = ownershipColor:toHex(false)
+            
+            local cardController = data.controllerColor == nil and "Grey" or data.controllerColor
+            local controlColor = Color.fromString(cardController)
+            local controlColorHex = controlColor:toHex(false)
+
+            local multiSelectInstruction = "\n[FFFFFF]BUTTONS AFFECT ALL SELECTED CARDS[-]"
 
             --bg with ownership function
             t.object.createButton({
-                tooltip = "Change to change\nOWNER color to SELF",
-                click_function='doNothing',
+                tooltip =   "CONTROLLER: ["..controlColorHex.."]"..cardController.."[-]\n"..
+                            "OWNER: ["..ownerColorHex.."]"..cardOwner.."[-]\n"..
+                            hexTooltipLowlight.."L-Click: Become CONTROLLER\n"..
+                            "R-Click: Become OWNER[-]"..multiSelectInstruction,
+                click_function= "ReceiveGemClick",
                 function_owner=self,
 
                 position=
@@ -687,13 +704,13 @@ function createButtons(t)
 
                 height= verticalSize,
                 width= horizontalSize,
-                color = colorDarkGrey,
+                color = colorCardBorderBlack,
 
-                rotation={0,45,90-90*flip}
+                rotation={0,0,90-90*flip},
+                scale = buttonScale
             })
 
             --ownership gem
-            local ownershipColor = data.ownerColor == nil and Color.Grey or Color.fromString(data.ownerColor)
             t.object.createButton({
                 click_function='doNothing',
                 function_owner=self,
@@ -701,36 +718,36 @@ function createButtons(t)
                 position=
                 {
                     0,
-                    0.35*flip*scaler.z,
+                    0.4*flip*scaler.z,
                     verticalOffset
                 },
 
-                height= verticalSize * 0.75,
-                width= horizontalSize * 0.75,
-                color = Color.Black:lerp(ownershipColor, 0.5),
+                height= verticalSize * 0.7,
+                width= horizontalSize * 0.85,
+                color = Color.Black:lerp(ownershipColor, 0.33),
 
-                rotation={180,45,90-90*flip}
+                rotation={180,0,90-90*flip},
+                scale = buttonScale
             })
 
             --control gem
-            local controlColor = data.controllerColor == nil and Color.Grey or Color.fromString(data.controllerColor)
             t.object.createButton({
-                tooltip = "Click to change\nCONTROLLER color to SELF",
-                click_function='doNothing',
+                click_function= "doNothing",
                 function_owner=self,
 
                 position=
                 {
                     0,
-                    0.35*flip*scaler.z,
+                    0.45*flip*scaler.z,
                     verticalOffset
                 },
 
-                height= verticalSize * 0.55,
-                width= horizontalSize * 0.55,
-                color = controlColor,
+                height= verticalSize * 0.4,
+                width= horizontalSize * 0.66,
+                color = Color.White:lerp(controlColor, 0.66),
 
-                rotation={0,45,90-90*flip}
+                rotation={180,0,90-90*flip},
+                scale = buttonScale
             })
         end
     end
@@ -775,6 +792,12 @@ function UpdateEncoderDataValue (dataTable)
             else
                 broadcastToAll("Type mismatch in value update attempt, received "..tostring(dataTable.varDelta).." against "..tostring(objectData[dataTable.varName]))
             end
+        elseif type(dataTable.varDelta) == "string" then
+            if type(objectData[dataTable.varName]) ==  "string" then
+                objectData[dataTable.varName] = dataTable.varDelta
+            else
+                broadcastToAll("Type mismatch in value update attempt, received "..tostring(dataTable.varDelta).." against "..tostring(objectData[dataTable.varName]))
+            end
         else
             broadcastToAll("Error in value update attempt, received "..tostring(dataTable.varDelta))
         end
@@ -808,6 +831,27 @@ function ToggleDisplayPlusOne (tar, ply, alt)
     local data = dataTable.encoder.call("APIgetObjectData",{obj=tar,propID=pID})
     dataTable.varDelta = not data.displayPlusOne
     dataTable.varName = "displayPlusOne"
+    PropagateValueChange(dataTable)
+end
+
+function ReceiveGemClick (tar, ply, alt)
+    if alt == false then ReceiveControllerClick(tar, ply, alt)
+    else ReceiveOwnershipClick(tar, ply, alt) end
+end
+
+function ReceiveOwnershipClick (tar, ply, alt)
+    local dataTable = GetClickdataTable(tar, ply, alt)
+    local data = dataTable.encoder.call("APIgetObjectData",{obj=tar,propID=pID})
+    dataTable.varDelta = ply
+    dataTable.varName = "ownerColor"
+    PropagateValueChange(dataTable)
+end
+
+function ReceiveControllerClick (tar, ply, alt)
+    local dataTable = GetClickdataTable(tar, ply, alt)
+    local data = dataTable.encoder.call("APIgetObjectData",{obj=tar,propID=pID})
+    dataTable.varDelta = ply
+    dataTable.varName = "controllerColor"
     PropagateValueChange(dataTable)
 end
 
@@ -1077,7 +1121,7 @@ function onObjectNumberTyped (container, player, number)
 end--]]
 
 function onObjectEnterScriptingZone(zone, object)
-    if object.tag ~= "Card" then return end
+    if object == nil or object.tag ~= "Card" then return end
 
     local enc = Global.getVar('Encoder')
     if enc ~= nil then
@@ -1096,6 +1140,26 @@ function onObjectEnterScriptingZone(zone, object)
             --broadcastToAll(tostring(deckCandidateTracker[playerColor][containerGUID].count))
             if deckCandidateTracker[playerColor][containerGUID].count == 7 then
                 --deckCandidateTracker[playerColor][containerGUID].count = 0 --wonky workaround
+
+                deck = getObjectFromGUID(containerGUID)
+                deck.createButton({
+                    click_function='doNothing',
+                    function_owner=self,
+    
+                    position=
+                    {
+                        3,
+                        0,
+                        0,
+                    },
+    
+                    height= 300,
+                    width= 900,
+                    color = {0,0,0},
+    
+                    rotation={0,0,45}
+                })
+                
                 addPlayerDeck(playerColor, containerGUID)
             end
         end
