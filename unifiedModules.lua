@@ -10,12 +10,13 @@ isRegistered = false
 function onload(saved_data)
     local dataTable = {recursiveCall=false}
     processSavedData(saved_data)
+    initializeDeckTables()
     tryAutoRegister(dataTable)
     createModuleChipButtons()
 end
 
 function onSave()
-    local data_to_save = {autoActivateCounter,autoActivatePowTou,autoActivatePlusOne}
+    local data_to_save = {autoActivateModule,autoActivateCounter,autoActivatePowTou,autoActivatePlusOne}
     local saved_data = JSON.encode(data_to_save)
     return saved_data
 end
@@ -221,7 +222,10 @@ function registerModule()
 
                 displayCounters = false,
                 displayPowTou = false,
-                displayPlusOne = false},
+                displayPlusOne = false,
+            
+                ownerColor = "Grey",
+                controllerColor = "Grey"},
 
             funcOwner = self,
             callOnActivate = false,
@@ -258,6 +262,8 @@ function createButtons(t)
     enc = Global.getVar('Encoder')
 
     if enc ~= nil then
+        parseCardData(t.object)
+        
         local data = enc.call("APIgetObjectData",{obj=t.object,propID=pID})
         local flip = enc.call("APIgetFlip",{obj=t.object})
         local scaler = {x=1,y=1,z=1}--t.object.getScale()
@@ -339,9 +345,10 @@ function createButtons(t)
             })
         end
 
-        parseCardData(t.object)
-        local loyaltyOffset = (data.displayCounters and data.hasLoyalty) and -0.3 or 0
         
+        local loyaltyOffset = (data.displayCounters and data.hasLoyalty) and -0.3 or 0
+        local colorLightGrey = {133/255,133/255,133/255}
+        local colorDarkGrey = {55/255,55/255,55/255}
         --simplecounter buttons
         if data.displayCounters then
             local verticalSize = 130
@@ -354,6 +361,7 @@ function createButtons(t)
             local verticalOffset = 1.275
             --tile size is about 500 for 1 unit
 
+            --bg
             t.object.createButton({
                 click_function = 'doNothing',
                 function_owner = self,
@@ -361,7 +369,7 @@ function createButtons(t)
                 height = verticalSize + rimSize,
                 width = horizontalSize + rimSize,
 
-                color = {133/255,133/255,133/255},
+                color = colorLightGrey,
 
                 position=
                 {
@@ -373,7 +381,7 @@ function createButtons(t)
                 rotation={0,0,-90-90*flip}
             })
 
-
+            --counter button
             t.object.createButton({
                 label=" "..data.genericCount.." ",
                 tooltip = "Right-Click to Subtract",
@@ -390,7 +398,7 @@ function createButtons(t)
 
                 height= verticalSize,
                 width= horizontalSize,
-                color = {66/255,66/255,66/255},
+                color = colorDarkGrey,
 
                 font_size=fSize,
                 font_color = {1,1,1},
@@ -398,6 +406,7 @@ function createButtons(t)
                 rotation={0,0,90-90*flip}
             })
 
+            --delta 10 button
             t.object.createButton({
                 tooltip = "Increase by 10\nRight-Click to Subtract",
                 click_function='receiveTenCounterClick',
@@ -496,10 +505,11 @@ function createButtons(t)
 
                 height= verticalSize + 26,
                 width= horizontalSize/2.1 + 26,
-                color = {133/255,133/255,133/255},
+                color = colorLightGrey,
 
                 rotation={0,0,-90-90*flip}
             })
+
             --powtou BG left
             t.object.createButton({
                 click_function='doNothing',
@@ -514,7 +524,7 @@ function createButtons(t)
 
                 height= verticalSize + 26,
                 width= horizontalSize/2.1 + 26,
-                color = {133/255,133/255,133/255},
+                color = colorLightGrey,
 
                 rotation={0,0,-90-90*flip}
             })
@@ -536,7 +546,7 @@ function createButtons(t)
 
                 height= verticalSize,
                 width= horizontalSize/2.1,
-                color = {66/255,66/255,66/255},
+                color = colorDarkGrey,
 
                 font_size= 80,
                 font_color = {1,1,1},
@@ -561,7 +571,7 @@ function createButtons(t)
 
                 height= verticalSize,
                 width= horizontalSize/2.1,
-                color = {66/255,66/255,66/255},
+                color = colorDarkGrey,
 
                 font_size= 80,
                 font_color = {1,1,1},
@@ -588,7 +598,7 @@ function createButtons(t)
 
             plusOneLabelString = ""..((data.plusOneCounters >= 0) and "+" or "")..data.plusOneCounters..'/'..((data.plusOneCounters >= 0) and "+" or "")..data.plusOneCounters.." "
 
-
+            -- delta 10 button
             t.object.createButton({
                 tooltip = "Add +10/+10\nRight-Click to Subtract",
                 click_function='receiveTenPlusOneClick',
@@ -611,6 +621,7 @@ function createButtons(t)
                 rotation={0,0,90-90*flip}
             })
 
+            --bg button
             t.object.createButton({
                 click_function = 'doNothing',
                 function_owner = self,
@@ -618,7 +629,7 @@ function createButtons(t)
                 height = verticalSize + rimSize + 16,
                 width = horizontalSize + rimSize,
 
-                color = {133/255,133/255,133/255},
+                color = colorLightGrey,
 
                 position=
                 {
@@ -630,6 +641,7 @@ function createButtons(t)
                 rotation={0,0,-90-90*flip}
             })
 
+            --plus one button
             t.object.createButton({
                 label=plusOneLabelString,
                 tooltip = "Right-Click to Subtract",
@@ -646,12 +658,79 @@ function createButtons(t)
 
                 height= verticalSize,
                 width= horizontalSize,
-                color = {66/255,66/255,66/255},
+                color = colorDarkGrey,
 
                 font_size= 80,
                 font_color = {1,1,1},
 
                 rotation={0,0,90-90*flip}
+            })
+        end
+
+        if true then --toggle ownership buttons collapsible section
+            local verticalOffset = 1.375
+            local verticalSize = 160
+            local horizontalSize = 160
+
+            --bg with ownership function
+            t.object.createButton({
+                tooltip = "Change to change\nOWNER color to SELF",
+                click_function='doNothing',
+                function_owner=self,
+
+                position=
+                {
+                    0,
+                    0.35*flip*scaler.z,
+                    verticalOffset
+                },
+
+                height= verticalSize,
+                width= horizontalSize,
+                color = colorDarkGrey,
+
+                rotation={0,45,90-90*flip}
+            })
+
+            --ownership gem
+            local ownershipColor = data.ownerColor == nil and Color.Grey or Color.fromString(data.ownerColor)
+            t.object.createButton({
+                click_function='doNothing',
+                function_owner=self,
+
+                position=
+                {
+                    0,
+                    0.35*flip*scaler.z,
+                    verticalOffset
+                },
+
+                height= verticalSize * 0.75,
+                width= horizontalSize * 0.75,
+                color = Color.Black:lerp(ownershipColor, 0.5),
+
+                rotation={180,45,90-90*flip}
+            })
+
+            --control gem
+            local controlColor = data.controllerColor == nil and Color.Grey or Color.fromString(data.controllerColor)
+            t.object.createButton({
+                tooltip = "Click to change\nCONTROLLER color to SELF",
+                click_function='doNothing',
+                function_owner=self,
+
+                position=
+                {
+                    0,
+                    0.35*flip*scaler.z,
+                    verticalOffset
+                },
+
+                height= verticalSize * 0.55,
+                width= horizontalSize * 0.55,
+                color = controlColor,
+
+                rotation={0,45,90-90*flip}
             })
         end
     end
@@ -791,10 +870,15 @@ function receiveTenPlusOneClick(tar,ply,alt)
 end
 
 --Parse Functions
-function parseCardData(object)
-    local enc = Global.getVar('Encoder')
+function parseCardData(object, enc)
     if enc ~= nil then
         local data = enc.call("APIgetObjectData",{obj=object,propID=pID})
+
+        if data == nil then
+            local datatTable = {obj = object}
+            data = autoActivate(dataTable)
+            return
+        end
         
         if data.hasParsed == false then
             data.hasParsed = true
@@ -904,27 +988,30 @@ function getToughnessFromCard(description)
 end
 
 --Auto Functions
-function onObjectDropped(player, object)
+function onObjectDropped (player, object)
+    TryTimedEncoding(object)
+end
+
+function TryTimedEncoding(object)
+    if object.tag ~= "Card" then return end
+
     local enc = Global.getVar('Encoder')
-    if enc == nil or autoActivateModule == false or object.tag ~= "Card" then
-        return
-    end
+    if enc == nil or autoActivateModule == false then return end
 
     if enc.call("APIobjectExist",{obj=object}) == false and object.getVar('noencode') == nil then
         enc.call("APIaddObject",{obj=object})
     end
 
-    timerId = "autoActivate"..pID.."for"..object.guid
-    Timer.destroy(timerId)
+    if enc.call("APIpropertyExists",{propID = pID}) == false then return end
 
-    dataTable = {obj = object}
-    Timer.create({
-        identifier = timerId,
-        function_name = "autoActivate",
-        function_owner = self,
-        parameters = dataTable,
-        delay = 0.15
-    })
+    if enc.call("APIcheckEnabled", {obj=object, propID = pID}) == false then
+        enc.call("APItoggleProperty",{obj=object, propID = pID})
+
+        InitializeCardData(object, enc)
+
+        enc.call("APIrebuildButtons",{obj=object})
+        return
+    end
 end
 
 function autoActivate(dataTable)
@@ -935,7 +1022,7 @@ function autoActivate(dataTable)
         
         elseif enc.call("APIobjectExist", {obj=dataTable.obj}) ~= nil then
             local data = enc.call("APIgetObjectData",{obj=dataTable.obj,propID=pID})
-            if data ~= nil and data.hasStats ~= nil then return end
+            if data ~= nil and data.hasStats ~= nil then return data end
 
             if enc.call("APIcheckEnabled", {obj=dataTable.obj, propID = pID}) == false then
                 enc.call("APItoggleProperty",{obj=dataTable.obj, propID = pID})
@@ -943,10 +1030,84 @@ function autoActivate(dataTable)
                 parseCardData(dataTable.obj)
 
                 enc.call("APIrebuildButtons",{obj=dataTable.obj})
-                return
+                return data
             end
         end
     end
+end
+
+function InitializeCardData(object, enc)
+    parseCardData(object, enc)
+    TryAssignOwnership(object, enc)
+end
+
+function TryAssignOwnership(object, enc)
+    local owner = deckPlayerPairs[object.getVar("sourceContainer")]
+
+    if type(owner) == "string" then
+        local data = enc.call("APIgetObjectData",{obj = object, propID = pID})
+
+        data.ownerColor = owner
+        data.controllerColor = owner
+
+        enc.call("APIsetObjectData",{obj = object, propID = pID, data = data})
+    end
+end
+
+--Deck Tracking Functions
+deckCandidateTracker = {}
+deckPlayerPairs = {}
+function initializeDeckTables()
+    local colorList = Color.list
+
+    for key, value in pairs(colorList) do
+        deckCandidateTracker[value] = {}
+    end
+end
+
+function onObjectLeaveContainer (container, object)
+    if object.tag ~= "Card" then return end
+
+    object.setVar("sourceContainer", container.guid)
+end
+
+--[[ doesn't work
+function onObjectNumberTyped (container, player, number)
+    
+end--]]
+
+function onObjectEnterScriptingZone(zone, object)
+    if object.tag ~= "Card" then return end
+
+    local enc = Global.getVar('Encoder')
+    if enc ~= nil then
+        encoderZones = enc.getTable("Zones")
+        if encoderZones[zone.getGUID()] ~= nil then
+            local containerGUID = object.getVar("sourceContainer")
+            if containerGUID == nil then return end
+
+            local playerColor = encoderZones[zone.getGUID()].color
+            if (deckCandidateTracker[playerColor][containerGUID]) ~= nil then
+                deckCandidateTracker[playerColor][containerGUID].count = deckCandidateTracker[playerColor][containerGUID].count + 1;
+                --jesus christ why does lua not have increment operators
+            else
+                deckCandidateTracker[playerColor][containerGUID] = {count = 1}
+            end
+            --broadcastToAll(tostring(deckCandidateTracker[playerColor][containerGUID].count))
+            if deckCandidateTracker[playerColor][containerGUID].count == 7 then
+                --deckCandidateTracker[playerColor][containerGUID].count = 0 --wonky workaround
+                addPlayerDeck(playerColor, containerGUID)
+            end
+        end
+    end
+end
+
+function addPlayerDeck(playerColor, containerGUID)
+    if deckPlayerPairs[containerGUID] ~= nil then
+        deckCandidateTracker[deckPlayerPairs[containerGUID]][containerGUID].count = 0
+        broadcastToAll("Overriding deck ownership")
+    end
+    deckPlayerPairs[containerGUID] = playerColor
 end
 
 function doNothing()
