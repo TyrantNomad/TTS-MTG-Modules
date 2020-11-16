@@ -389,7 +389,7 @@ function createButtons(t)
 
         local buttonTooltipExactCopy =
             singleSelectTooltip..
-            hexTooltipHighlight.."EXACT COPY[-]"..hexTooltipMidlight.." (SPAM-CLICKABLE)[-]\n"
+            hexTooltipHighlight.."EXACT COPY[-]"..hexTooltipMidlight.." (SPAM-CLICKABLE)[-]\n"..
             hexTooltipMidlight.."Spawns an exact copy of this card including its encoder data[-]"
 
         local buttonTooltipReImport =
@@ -500,7 +500,7 @@ function createButtons(t)
 
             --exact copy
             t.object.createButton({
-                click_function = "ExactCopy",
+                click_function = "MakeExactCopy",
                 function_owner = self,
 
                 label = "❐",
@@ -1164,17 +1164,81 @@ function receiveTenPlusOneClick(tar,ply,alt)
 end
 
 --Toolbox Functions
-function ExactCopy (tar, ply, alt)
-    --do the thing
+copyCount = 0
+function MakeExactCopy (tar, ply, alt)
+    --based on Exact Copy by Tipsy Hobbit (steamid: 13465982)
+    enc = Global.getVar('Encoder')
+    if enc ~= nil then
+        local dataOA = enc.call("APIgetOAData",{obj=tar})
+        local data = enc.call("APIgetObjectData",{obj = tar, propID = pID})
+        local flip = enc.call("APIgetFlip",{obj=tar})
+        local params = {position = tar.getPosition()}
+
+        
+        local horizontalOffsetMultiplier = data.exactCopyOffset % 5 + 1
+        local verticalOffsetMultiplier = math.floor(data.exactCopyOffset/5)
+        data.exactCopyOffset = data.exactCopyOffset + 1
+
+        local cardRight = tar.getTransformRight()
+        local cardForward = tar.getTransformForward()
+
+        if data.controllerColor ~= nil and data.controllerColor ~= "Grey" then
+            controllerHand = Player[data.controllerColor].getHandTransform(1)
+            if controllerHand ~= nil then
+                --for some reason  right is left and forward is back
+                cardRight[1] = controllerHand.right[1] * -1
+                cardRight[3] = controllerHand.right[3] * -1
+
+                cardForward[1] = controllerHand.forward[1] * -1
+                cardForward[3] = controllerHand.forward[3] * -1
+            end
+        end
+
+        local xOffset = (-2.4 * cardRight[1] * horizontalOffsetMultiplier) + (3.6 * cardForward[1] * verticalOffsetMultiplier)
+        local zOffset = (-2.4 * cardRight[3] * horizontalOffsetMultiplier) + (3.6 * cardForward[3] * verticalOffsetMultiplier)
+
+        params.position[1] = params.position[1] + xOffset
+        params.position[2] = params.position[2] + 0.05
+        params.position[3] = params.position[3] + zOffset
+
+        local copiedCard = tar.clone(params)
+        copiedCard.setLock(true)
+
+        copyCount = copyCount + 1
+
+        local data = enc.call("APIsetObjectData",{obj = tar, propID = pID, data = data})
+    
+        Timer.create({
+            identifier = "exactCopyTimer"..tar.guid..copyCount,
+            function_name = "SetExactCopyData",
+            function_owner = self,
+            parameters = {copiedCard = copiedCard, dataOA = dataOA, enc = enc},
+            delay = 0.2
+        })
+        
+        Timer.destroy("resetExactCopyOffset"..tar.guid)
+        Timer.create({
+            identifier = "resetExactCopyOffset"..tar.guid,
+            function_name = "ResetExactCopyOffset",
+            function_owner = self,
+            parameters = {tar = tar, enc = enc},
+            delay = 3
+        })
+    end
 end
 
-function ResetExactCopyOffset (tar)
-    enc = Global.getVar("Encoder")
-    if enc ~= nil then
-        local data = enc.call("APIgetObjectData",{obj = tar, propID = pID})
-        data.exactCopyOffset = 0
-        enc.call("APIsetObjectData",{obj = tar, propID = pID, data = data})
-    end
+function SetExactCopyData (dataTable)
+    dataTable.enc.call("APIaddObject",{obj=dataTable.copiedCard})
+    dataTable.enc.call("APIsetOAData",{obj=dataTable.copiedCard, data = dataTable.dataOA})
+    dataTable.enc.call("APIrebuildButtons",{obj=dataTable.copiedCard})
+
+    dataTable.copiedCard.setLock(false)
+end
+
+function ResetExactCopyOffset (dataTable)
+    local data = dataTable.enc.call("APIgetObjectData",{obj = dataTable.tar, propID = pID})
+    data.exactCopyOffset = 0
+    dataTable.enc.call("APIsetObjectData",{obj = dataTable.tar, propID = pID, data = data})
 end
 
 function GetAmuzetsCardImporter ()
@@ -1281,7 +1345,7 @@ function parseCardData(object, enc)
         local data = enc.call("APIgetObjectData",{obj=object,propID=pID})
 
         if data == nil then
-            local datatTable = {obj = object}
+            local dataTable = {obj = object}
             data = autoActivate(dataTable)
             return
         end
@@ -1399,7 +1463,7 @@ function onObjectDropped (player, object)
 end
 
 function onObjectSpawn(obj)
-    broadcastToAll(obj.tag)
+    --broadcastToAll(obj.tag)
 end
 
 function TryTimedEncoding(object)
@@ -1530,7 +1594,7 @@ end
 function addPlayerDeck(playerColor, containerGUID)
     if deckPlayerPairs[containerGUID] ~= nil then
         deckCandidateTracker[deckPlayerPairs[containerGUID]][containerGUID].count = 0
-        broadcastToAll("Overriding deck ownership")
+        --broadcastToAll("Overriding deck ownership")
     end
     deckPlayerPairs[containerGUID] = playerColor
 end
