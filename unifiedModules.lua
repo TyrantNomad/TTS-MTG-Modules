@@ -351,6 +351,59 @@ function createButtons(t)
         local colorCardBorderBlack = {19/255,16/255,12/255}
 
         local hexTooltipLowlight = "[BBBBBB]"
+        local hexTooltipMidlight = "[DDDDDD]"
+        local hexTooltipHighlight = "[FFCC00]"
+
+        --tooltips
+        local multiSelectTooltip = hexTooltipMidlight.."\nBUTTONS AFFECT ALL SELECTED CARDS[-]"
+
+        local buttonTooltipOwnershipGem =
+            "CONTROLLER: ["..controlColorHex.."]"..cardController.."[-]\n"..
+            "OWNER: ["..ownerColorHex.."]"..cardOwner.."[-]\n"..
+            hexTooltipLowlight.."L-Click: Become CONTROLLER\n"..
+            "R-Click: Become OWNER[-]\n"..
+            multiSelectInstruction
+        
+        local buttonTooltipCounterSingleClick = 
+            hexTooltipLowlight.."L-Click: +1      R-Click: -1[-]\n"..
+            hexTooltipHighlight.."Button Below:[-]"..hexTooltipMidlight.." Add/Subtract 10[-]\n"..
+            multiSelectInstruction
+         
+        local buttonTooltipCounterTenClick = 
+            hexTooltipLowlight.."L-Click: +10     R-Click: -10[-]\n"..
+            multiSelectInstruction
+
+        local buttonTooltipPowerrSingleClick = 
+            hexTooltipLowlight.."L-Click: +1     R-Click: -1[-]\n"..
+            hexTooltipHighlight.."Button Below:[-]"..hexTooltipMidlight.." Add/Subtract BOTH[-]\n"..
+            multiSelectInstruction
+
+        local buttonTooltipToughnessSingleClick = 
+            hexTooltipLowlight.."L-Click: +1     R-Click: -1[-]\n"..
+            hexTooltipHighlight.."Button Below:[-]"..hexTooltipMidlight.." Add/Subtract BOTH[-]\n"..
+            multiSelectInstruction
+
+        local buttonTooltipPowTouSingleClick = 
+            hexTooltipLowlight.."L-Click: +1/+1     R-Click: -1/-1[-]\n"..
+            multiSelectInstruction
+
+        local buttonTooltipPlusOneSingleClick = 
+            hexTooltipLowlight.."L-Click: +1/+1      R-Click: -1/-1[-]\n"..
+            hexTooltipHighlight.."Button Below:[-]"..hexTooltipMidlight.." Add/Subtract 10[-]\n"..
+            multiSelectInstruction
+         
+        local buttonTooltipCounterTenClick = 
+            hexTooltipLowlight.."L-Click: +10/+10     R-Click: -10/-10[-]\n"..
+            multiSelectInstruction
+
+        local buttonTooltipToggleDisplayCounters =
+            hexTooltipHighlight..(data.displayCounters == true and "HIDE" or "SHOW").."[-]"..hexTooltipLowlight.." LOYALTY/NUMBER COUNTER\n"..
+            hexTooltipLowlight.."Toggles a simple numeric counter on the card\n"
+            multiSelectInstruction
+
+        local buttonTooltipToggleDisplayPlusOne =
+
+        local buttonTooltipToggleDisplayPowTou =
 
         --simplecounter buttons
         if data.displayCounters then
@@ -684,14 +737,11 @@ function createButtons(t)
             local controlColor = Color.fromString(cardController)
             local controlColorHex = controlColor:toHex(false)
 
-            local multiSelectInstruction = "\n[FFFFFF]BUTTONS AFFECT ALL SELECTED CARDS[-]"
+            
 
             --bg with ownership function
             t.object.createButton({
-                tooltip =   "CONTROLLER: ["..controlColorHex.."]"..cardController.."[-]\n"..
-                            "OWNER: ["..ownerColorHex.."]"..cardOwner.."[-]\n"..
-                            hexTooltipLowlight.."L-Click: Become CONTROLLER\n"..
-                            "R-Click: Become OWNER[-]"..multiSelectInstruction,
+                tooltip =   buttonTooltipOwnershipGem,
                 click_function= "ReceiveGemClick",
                 function_owner=self,
 
