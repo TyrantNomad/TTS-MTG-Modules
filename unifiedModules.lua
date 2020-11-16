@@ -45,34 +45,64 @@ function tryAutoRegister(data)
             function_name = "tryAutoRegister",
             function_owner = self,
             parameters = dataTable,
-            delay = 5
+            delay = 3
         })
     end
 end
 
-function forceEncoderUpdate(encoderCode)
-    local encoderCode = encoderCode.text
+function forceEncoderUpdate(placeholderCode)
+    local placeholderCode = placeholderCode.text
 
     local encoder = Global.getVar('Encoder')
-    encoder.script_code = encoderCode
-    encoder.reload()
+    if encoder ~= nil then
+        encoder.script_code = placeholderCode
+        encoder.reload()
+
+        local dataTable = {recursiveCall=false}
+        tryAutoRegister(dataTable)
+    else broadcastToAll("Failed to find Encoder to update") end
 end
 
-function forcePlaceholderEncoder(encoderCode)
-    local encoderCode = encoderCode.text
+function forceImporterUpdate(placeholderCode)
+    local placeholderCode = placeholderCode.text
+
+    local encoder = Global.getVar('Encoder')
+    local importer = GetAmuzetsCardImporter()
+
+    if encoder ~= nil then
+        importer.script_code = placeholderCode
+        importer.reload()
+    else broadcastToAll("Failed to find Card Importer to update") end
+end
+
+function forcePlaceholderDependency(placeholderCode, moduleName)
+    local placeholderCode = placeholderCode.text
     spawnParams = {
-        type = "rpg_TROLL",
+        type = "reversi_chip",
+        name = "[FF0000]PLACEHOLDER [-]"..moduleName,
+        description = "Just go [FFCC00]get the real thing on the Steam Workshop[-] already\n [FF0000]...YOU STINKY LAZY-BUTT",
         position = {0, 5, 0},
-        scale = {0.5, 0.5, 0.5},
+        scale = {4, 32, 4},
         sound = false,
-        callback_function = function(obj) attachEncoderToPlaceholder(obj, encoderCode) end
+        callback_function = function(obj) attachCodeToPlaceholder(obj, placeholderCode) end
     }
 
     spawnObject(spawnParams)
 end
 
-function attachEncoderToPlaceholder (placeholderObject, encoderCode)
-    placeholderObject.script_code = encoderCode
+function forcePlaceholderEncoder(placeholderCode)
+    forcePlaceholderDependency(placeholderCode, "Encoder")
+
+    local dataTable = {recursiveCall=false}
+    tryAutoRegister(dataTable)
+end
+
+function forcePlaceholderImporter(placeholderCode)
+    forcePlaceholderDependency(placeholderCode, "Card Importer")
+end
+
+function attachCodeToPlaceholder (placeholderObject, placeholderCode)
+    placeholderObject.script_code = placeholderCode
     placeholderObject.reload()
 end
 
@@ -237,8 +267,8 @@ function registerModule()
 
         refreshModuleChipButtons()
     else
-        broadcastToAll("No encoder found. You need Encoder v3.18+ by Tipsy Hobbit (steamid: 13465982) to use the module")
-        broadcastToAll("Get the Encoder from the Steam Workshop or type 'force encoder temporary' to spawn a placeholder")
+        broadcastToAll("No encoder found. You need [FFCC00]Encoder v3.18+ by Tipsy Hobbit (steamid: 13465982)[-] to use the module")
+        broadcastToAll("Get the Encoder from the Steam Workshop or type [FFCC00]'force encoder temporary'[-] to spawn a placeholder")
     end
 end
 
@@ -250,6 +280,14 @@ function onChat(message, player)
             WebRequest.get("https://raw.githubusercontent.com/Jophire/Tabletop-Simulator-Workshop-Items/master/Encoder/Encoder%20Core.lua", self, "forceEncoderUpdate")
         elseif string.find (message,'encoder temporary') ~= nil then
             WebRequest.get("https://raw.githubusercontent.com/Jophire/Tabletop-Simulator-Workshop-Items/master/Encoder/Encoder%20Core.lua", self, "forcePlaceholderEncoder")
+        end
+    end
+    
+    if string.find(message, 'force importer') ~= nil then
+        if string.find (message, 'importer update') ~= nil then
+            WebRequest.get("https://raw.githubusercontent.com/Amuzet/Tabletop-Simulator-Scripts/master/Magic/Importer.lua", self, "forceImporterUpdate")
+        elseif string.find (message, 'importer temporary') ~= nil then
+            WebRequest.get("https://raw.githubusercontent.com/Amuzet/Tabletop-Simulator-Scripts/master/Magic/Importer.lua", self, "forcePlaceholderImporter")
         end
     end
 end
@@ -351,7 +389,7 @@ function createButtons(t)
 
         local buttonTooltipExactCopy =
             singleSelectTooltip..
-            hexTooltipHighlight.."EXACT COPY[-]\n"..
+            hexTooltipHighlight.."EXACT COPY[-]"..hexTooltipMidlight.." (SPAM-CLICKABLE)[-]\n"
             hexTooltipMidlight.."Spawns an exact copy of this card including its encoder data[-]"
 
         local buttonTooltipReImport =
@@ -364,7 +402,7 @@ function createButtons(t)
         local buttonTooltipReImportMissingImporter =
             hexTooltipHighlight.."RE-IMPORT[-]\n"..
             hexTooltipMidlight.."Re-imports this card through Scryfall\nand spawns it[-]\n\n"..
-            hexTooltipRedlight.."REQUIRES AMUZET'S CARD IMPORTER"
+            hexTooltipRedlight.."REQUIRES AMUZET'S CARD IMPORTER[-]"
 
         local buttonTooltipEmblemsTokens =
             singleSelectTooltip..
@@ -399,8 +437,8 @@ function createButtons(t)
                 click_function = 'ToggleDisplayCounter',
                 function_owner = self,
 
-                label = "[1]",
-                font_size = buttonTextSize,
+                label = "①",
+                font_size = buttonTextSize + 8,
                 font_color = data.displayCounters and buttonTextColorOn or buttonTextColorOff,
                 tooltip = buttonTooltipToggleDisplayCounters,
 
@@ -506,7 +544,7 @@ function createButtons(t)
                 })
             else
                 t.object.createButton({
-                    click_function = 'doNothing',
+                    click_function = 'ReImport',
                     function_owner = self,
 
                     label = "↺",
@@ -552,7 +590,7 @@ function createButtons(t)
                 })
             else
                 t.object.createButton({
-                    click_function = 'doNothing',
+                    click_function = 'EmblemsAndTokens',
                     function_owner = self,
     
                     label = "☗",
@@ -564,7 +602,7 @@ function createButtons(t)
                     width = buttonDimensions,
     
                     color = buttonBackgroundColorError,
-                    hover_color = buttonHoverColor,
+                    hover_color = buttonBackgroundColorError,
     
                     position=
                     {
@@ -1072,7 +1110,8 @@ function GetClickdataTable (tar, ply, alt)
         local dataTable = {encoder = enc, target = tar, player = ply, alt_click = alt, varName, varDelta}
         return dataTable
     else
-        tryAutoRegister()
+        local dataTable = {recursiveCall=false}
+        tryAutoRegister(dataTable)
     end
 end
 
@@ -1142,18 +1181,50 @@ function GetAmuzetsCardImporter ()
     enc = Global.getVar("Encoder")
     if enc ~= nil then
         local encoderToolTable = enc.getTable("Tools")
+        if encoderToolTable["Card Importer"] == nil then return end
+
         local amuzetCardImporter = encoderToolTable["Card Importer"].funcOwner
+
+        local importerVersion = tonumber(string.match(amuzetCardImporter.getVar("version"),"%d+%.%d*"))
+        if importerVersion < 1.9 then
+            broadcastToAll ("Unsupported Card Importer version found, version 1.9 or newer is required")
+            broadcastToAll ("Type [FFCC00]'force importer update'[-] to update your Card Importer or get the new one from the Steam Workshop")
+            return
+        end
+
         return amuzetCardImporter
     end
 end
 
+function CreateImporterRequestTable (tar, ply)
+    local qTbl = {
+        position = tar.getPosition(),
+        color = ply,
+        player=Player[ply].steam_id,
+        name = tar.getName():gsub("\n.*",""),
+        mode = "",
+        full = ""
+    }
+
+    qTbl.position[1] = qTbl.position[1] + 2.4
+    qTbl.position[2] = qTbl.position[2] + 0.25
+
+    return qTbl
+end
+
 lockReImport = false
 function ReImport (tar, ply, alt)
-    if (not lockReImport) then return end
+    if lock == true then
+        broadcastToAll("SPAM-CLICK DETECTED\nTry again in a few seconds")
+        return
+    end
 
     amuzetCardImporter = GetAmuzetsCardImporter()
-    if amuzetCardImporter ~= nil and amuzetCardImporter.object ~= nil then
-        --do the thing
+    if amuzetCardImporter ~= nil then
+        importerRequestTable = CreateImporterRequestTable(tar, ply)
+        importerRequestTable.full = "Reimporting Card"
+
+        amuzetCardImporter.call('Importer', importerRequestTable)
 
         lockReImport = true
         --used to avoid spam-clicking
@@ -1162,22 +1233,28 @@ function ReImport (tar, ply, alt)
             identifier = "reImportTimer"..tar.guid,
             function_name = "ReEnableReImport",
             function_owner = self,
-            delay = 3
+            delay = 2
         })
+    else
+        broadcastToAll("This feature requires [FFCC00]Amuzet's Card Importer[-]")
+        broadcastToAll("Get the Card Importer from the Steam Workshop or type [FFCC00]'force importer temporary'[-] to create a placeholder")
     end
-end
-
-function ReEnableReImport ()
-    lockReImport = false
 end
 
 lockEmblemsAndTokens = false
 function EmblemsAndTokens (tar, ply, alt)
-    if (not lockEmblemsAndTokens) then return end
+    if lockEmblemsAndTokens == true then
+        broadcastToAll("SPAM-CLICK DETECTED\nTry again in a few seconds")
+        return
+    end
 
     amuzetCardImporter = GetAmuzetsCardImporter()
-    if amuzetCardImporter ~= nil and amuzetCardImporter.object ~= nil then
-        --do the thing
+    if amuzetCardImporter ~= nil then
+        importerRequestTable = CreateImporterRequestTable(tar, ply)
+        importerRequestTable.full = "Importing Tokens & Emblems"
+        importerRequestTable.mode = "Token"
+
+        amuzetCardImporter.call('Importer', importerRequestTable)
 
         lockEmblemsAndTokens = true
         --used to avoid spam-clicking
@@ -1186,8 +1263,11 @@ function EmblemsAndTokens (tar, ply, alt)
             identifier = "emblemsAndTokensTimer"..tar.guid,
             function_name = "ReEnableEmblemsAndTokens",
             function_owner = self,
-            delay = 3
+            delay = 2
         })
+    else
+        broadcastToAll("This feature requires [FFCC00]Amuzet's Card Importer[-]")
+        broadcastToAll("Get the Card Importer from the Steam Workshop or type [FFCC00]'force importer temporary'[-] to create a placeholder")
     end
 end
 
@@ -1400,11 +1480,6 @@ function onObjectLeaveContainer (container, object)
 
     object.setVar("sourceContainer", container.guid)
 end
-
---[[ doesn't work
-function onObjectNumberTyped (container, player, number)
-    
-end--]]
 
 function onObjectEnterScriptingZone(zone, object)
     if object == nil or object.tag ~= "Card" then return end
