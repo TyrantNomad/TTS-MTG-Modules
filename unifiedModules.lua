@@ -223,6 +223,8 @@ function registerModule()
                 displayCounters = false,
                 displayPowTou = false,
                 displayPlusOne = false,
+
+                exactCopyOffset = 0,
             
                 ownerColor = "Grey",
                 controllerColor = "Grey"},
@@ -268,9 +270,117 @@ function createButtons(t)
         local flip = enc.call("APIgetFlip",{obj=t.object})
         local scaler = {x=1,y=1,z=1}--t.object.getScale()
 
-        if true then --toggle display buttons collapsible section
+        local amuzetCardImporter = GetAmuzetsCardImporter()
+
+        local loyaltyOffset = (data.displayCounters and data.hasLoyalty) and -0.3 or 0
+        local colorLightGrey = {133/255,133/255,133/255}
+        local colorDarkGrey = {55/255,55/255,55/255}
+        local colorCardBorderBlack = {19/255,16/255,12/255}
+
+        local hexTooltipLowlight = "[BBBBBB]"
+        local hexTooltipMidlight = "[DDDDDD]"
+        local hexTooltipHighlight = "[FFCC00]"
+        local hexTooltipBluelight = "[7799FF]"
+        local hexTooltipRedlight = "[FF2222]"
+
+        local cardOwner = data.ownerColor == nil and "Grey" or data.ownerColor
+        local ownershipColor = Color.fromString(cardOwner)
+        local ownerColorHex = ownershipColor:toHex(false)
+        
+        local cardController = data.controllerColor == nil and "Grey" or data.controllerColor
+        local controlColor = Color.fromString(cardController)
+        local controlColorHex = controlColor:toHex(false)
+        
+        --tooltips
+        local multiSelectTooltip = hexTooltipHighlight.."AFFECTS ALL SELECTED CARDS[-]\n\n"
+        local singleSelectTooltip = hexTooltipBluelight.."AFFECTS CLICKED CARD ONLY[-]\n\n"
+
+        local buttonTooltipOwnershipGem =
+            multiSelectTooltip..
+            "CONTROLLER: ["..controlColorHex.."]"..cardController.."[-]\n"..
+            "OWNER: ["..ownerColorHex.."]"..cardOwner.."[-]\n\n"..
+            hexTooltipLowlight.."L-Click: Become CONTROLLER\n"..
+            "R-Click: Become OWNER[-]"
+        
+        local buttonTooltipCounterSingleClick = 
+            multiSelectTooltip..
+            hexTooltipLowlight.."L-Click: +1      R-Click: -1[-]\n"..
+            hexTooltipHighlight.."Button Below:[-]"..hexTooltipMidlight.." Add/Subtract 10[-]"
+         
+        local buttonTooltipCounterTenClick = 
+            multiSelectTooltip..
+            hexTooltipLowlight.."L-Click: +10     R-Click: -10[-]"
+
+        local buttonTooltipPowerSingleClick = 
+            multiSelectTooltip..
+            hexTooltipLowlight.."L-Click: +1     R-Click: -1[-]\n"..
+            hexTooltipHighlight.."Button Below:[-]"..hexTooltipMidlight.." Add/Subtract BOTH[-]"
+
+        local buttonTooltipToughnessSingleClick = 
+            multiSelectTooltip..
+            hexTooltipLowlight.."L-Click: +1     R-Click: -1[-]\n"..
+            hexTooltipHighlight.."Button Below:[-]"..hexTooltipMidlight.." Add/Subtract BOTH[-]"
+
+        local buttonTooltipPowTouSingleClick = 
+            multiSelectTooltip..
+            hexTooltipLowlight.."L-Click: +1/+1     R-Click: -1/-1[-]"
+
+        local buttonTooltipPlusOneSingleClick = 
+            multiSelectTooltip..
+            hexTooltipLowlight.."L-Click: +1/+1      R-Click: -1/-1[-]\n"..
+            hexTooltipHighlight.."Button Above:[-]"..hexTooltipMidlight.." Add/Subtract 10[-]"
+         
+        local buttonTooltipPlusOneTenClick = 
+            multiSelectTooltip..
+            hexTooltipLowlight.."L-Click: +10/+10     R-Click: -10/-10[-]"
+
+        local buttonTooltipToggleDisplayCounters =
+            multiSelectTooltip..
+            hexTooltipHighlight..(data.displayCounters == true and "HIDE" or "SHOW").."[-]"..hexTooltipMidlight.." LOYALTY/NUMBER COUNTER\n"..
+            hexTooltipLowlight.."Toggles a number counter on the card"
+
+        local buttonTooltipToggleDisplayPlusOne =
+            multiSelectTooltip..
+            hexTooltipHighlight..(data.displayPlusOne == true and "HIDE" or "SHOW").."[-]"..hexTooltipMidlight.." +1/+1 COUNTER\n"..
+            hexTooltipLowlight.."Toggles +1/+1 counters on the card"
+
+        local buttonTooltipToggleDisplayPowTou =
+            multiSelectTooltip..
+            hexTooltipHighlight..(data.displayPowTou == true and "HIDE" or "SHOW").."[-]"..hexTooltipMidlight.." POWER/TOUGHNESS\n"..
+            hexTooltipLowlight.."Toggles Power/Toughness on the card"
+
+        local buttonTooltipExactCopy =
+            singleSelectTooltip..
+            hexTooltipHighlight.."EXACT COPY[-]\n"..
+            hexTooltipMidlight.."Spawns an exact copy of this card including its encoder data[-]"
+
+        local buttonTooltipReImport =
+            singleSelectTooltip..
+            hexTooltipHighlight.."RE-IMPORT[-]\n"..
+            hexTooltipMidlight.."Re-imports this card through Scryfall\nand spawns it[-]\n\n"..
+            hexTooltipHighlight.."IMPORTS DOUBLE-FACED CARDS[-]\n"..
+            hexTooltipLowlight.."Uses Amuzet's Card Importer[-]"
+
+        local buttonTooltipReImportMissingImporter =
+            hexTooltipHighlight.."RE-IMPORT[-]\n"..
+            hexTooltipMidlight.."Re-imports this card through Scryfall\nand spawns it[-]\n\n"..
+            hexTooltipRedlight.."REQUIRES AMUZET'S CARD IMPORTER"
+
+        local buttonTooltipEmblemsTokens =
+            singleSelectTooltip..
+            hexTooltipHighlight.."EMBLEMS & TOKENS[-]\n"..
+            hexTooltipMidlight.."Imports this card's emblems & tokens through scryfall[-]\n\n"..
+            hexTooltipLowlight.."Uses Amuzet's Card Importer"
+
+        local buttonTooltipEmblemsTokensMissingImporter =
+            hexTooltipHighlight.."EMBLEMS & TOKENS[-]\n"..
+            hexTooltipMidlight.."Imports this card's emblems & tokens through scryfall[-]\n\n"..
+            hexTooltipRedlight.."REQUIRES AMUZET'S CARD IMPORTER[-]"
+
+        if true then --side buttons, toggles on the left and utils on the right
             local buttonBackgroundColorOff = {0,0,0,  0.7}
-            local buttonBackgroundColorOn = {0,0,0, 0.9}
+            local buttonBackgroundColorOn = {0,0,0,   0.9}
+            local buttonBackgroundColorError = {0.6,0,0,   0.5}
 
             local buttonTextColorOff = {0.8,0.8,0.8, 0.8}
             local buttonTextColorOn = {1,0.8,0.4, 0.7}
@@ -278,9 +388,13 @@ function createButtons(t)
 
             local buttonHoverColor = {0,0,0,1}
 
-            local verticalSpacing = 0.2
             local buttonDimensions = 90
+            local verticalSpacing = 0.2
 
+            local horizontalOffset = 1.035
+            local verticalOffset = -0.36
+
+            --toggle counters
             t.object.createButton({
                 click_function = 'ToggleDisplayCounter',
                 function_owner = self,
@@ -288,7 +402,7 @@ function createButtons(t)
                 label = "[1]",
                 font_size = buttonTextSize,
                 font_color = data.displayCounters and buttonTextColorOn or buttonTextColorOff,
-                tooltip = "Click to "..(data.displayCounters and "HIDE" or "SHOW").."\nCounters/Loyalty",
+                tooltip = buttonTooltipToggleDisplayCounters,
 
                 height = buttonDimensions,
                 width = buttonDimensions,
@@ -298,10 +412,11 @@ function createButtons(t)
 
                 position=
                 {
-                    -1.035, 0.35, -0.36 + 2 * verticalSpacing
+                    -horizontalOffset, 0.35, verticalOffset + 2 * verticalSpacing
                 }
             })
 
+            --toggle plusone
             t.object.createButton({
                 click_function = 'ToggleDisplayPowTou',
                 function_owner = self,
@@ -309,7 +424,7 @@ function createButtons(t)
                 label = "1/",
                 font_size = buttonTextSize,
                 font_color = data.displayPowTou and buttonTextColorOn or buttonTextColorOff,
-                tooltip = "Click to "..(data.displayPowTou and "HIDE" or "SHOW").."\nPow/Tou",
+                tooltip = buttonTooltipToggleDisplayPowTou,
 
                 height = buttonDimensions,
                 width = buttonDimensions,
@@ -319,10 +434,11 @@ function createButtons(t)
 
                 position=
                 {
-                    -1.035, 0.35, -0.36 + 1 * verticalSpacing
+                    -horizontalOffset, 0.35, verticalOffset + 1 * verticalSpacing
                 }
             })
 
+            --toggle powtou
             t.object.createButton({
                 click_function = 'ToggleDisplayPlusOne',
                 function_owner = self,
@@ -330,7 +446,7 @@ function createButtons(t)
                 label = "+1 ",
                 font_size = buttonTextSize,
                 font_color = data.displayPlusOne and buttonTextColorOn or buttonTextColorOff,
-                tooltip = "Click to "..(data.displayCounters and "HIDE" or "SHOW").."\n+1/+1 Counters",
+                tooltip = buttonTooltipToggleDisplayPlusOne,
 
                 height = buttonDimensions,
                 width = buttonDimensions,
@@ -340,71 +456,126 @@ function createButtons(t)
 
                 position=
                 {
-                    -1.035, 0.35, -0.36 + 0 * verticalSpacing
+                    -horizontalOffset, 0.35, verticalOffset + 0 * verticalSpacing
                 }
             })
+
+            --exact copy
+            t.object.createButton({
+                click_function = "ExactCopy",
+                function_owner = self,
+
+                label = "❐",
+                font_size = buttonTextSize + 6,
+                font_color = buttonTextColorOff,
+                tooltip = buttonTooltipExactCopy,
+
+                height = buttonDimensions,
+                width = buttonDimensions,
+
+                color = buttonBackgroundColorOff,
+                hover_color = buttonHoverColor,
+
+                position=
+                {
+                    horizontalOffset, 0.35, verticalOffset + 0 * verticalSpacing
+                }
+            })
+
+            --reimport
+            if amuzetCardImporter ~= nil then --re-import button
+                t.object.createButton({
+                    click_function = "ReImport",
+                    function_owner = self,
+
+                    label = "↺",
+                    font_size = buttonTextSize + 16,
+                    font_color = buttonTextColorOff,
+                    tooltip = buttonTooltipReImport,
+
+                    height = buttonDimensions,
+                    width = buttonDimensions,
+
+                    color = buttonBackgroundColorOff,
+                    hover_color = buttonHoverColor,
+
+                    position=
+                    {
+                        horizontalOffset, 0.35, verticalOffset + 1 * verticalSpacing
+                    }
+                })
+            else
+                t.object.createButton({
+                    click_function = 'doNothing',
+                    function_owner = self,
+
+                    label = "↺",
+                    font_size = buttonTextSize + 16,
+                    font_color = buttonTextColorOff,
+                    tooltip = buttonTooltipReImportMissingImporter,
+
+                    height = buttonDimensions,
+                    width = buttonDimensions,
+
+                    color = buttonBackgroundColorError,
+                    hover_color = buttonBackgroundColorError,
+
+                    position=
+                    {
+                        horizontalOffset, 0.35, verticalOffset + 1 * verticalSpacing
+                    }
+                })
+            end
+
+            --emblems and tokens
+            if amuzetCardImporter ~= nil then --emblem button
+                t.object.createButton({
+                    click_function = "EmblemsAndTokens",
+                    function_owner = self,
+    
+                    label = "☗",
+                    font_size = buttonTextSize,
+                    font_color = buttonTextColorOff,
+                    tooltip = buttonTooltipEmblemsTokens,
+    
+                    height = buttonDimensions,
+                    width = buttonDimensions,
+    
+                    color = buttonBackgroundColorOff,
+                    hover_color = buttonHoverColor,
+    
+                    position=
+                    {
+                        horizontalOffset, 0.35, verticalOffset + 2 * verticalSpacing
+                    },
+                    rotation = {0, 180, 0} -- the label looks like an emblem when upside down
+                })
+            else
+                t.object.createButton({
+                    click_function = 'doNothing',
+                    function_owner = self,
+    
+                    label = "☗",
+                    font_size = buttonTextSize,
+                    font_color = buttonTextColorOff,
+                    tooltip = buttonTooltipEmblemsTokensMissingImporter,
+    
+                    height = buttonDimensions,
+                    width = buttonDimensions,
+    
+                    color = buttonBackgroundColorError,
+                    hover_color = buttonHoverColor,
+    
+                    position=
+                    {
+                        horizontalOffset, 0.35, verticalOffset + 2 * verticalSpacing
+                    },
+                    rotation = {0, 180, 0} -- the label looks like an emblem when upside down
+                })
+            end
+            
         end
         
-        local loyaltyOffset = (data.displayCounters and data.hasLoyalty) and -0.3 or 0
-        local colorLightGrey = {133/255,133/255,133/255}
-        local colorDarkGrey = {55/255,55/255,55/255}
-        local colorCardBorderBlack = {19/255,16/255,12/255}
-
-        local hexTooltipLowlight = "[BBBBBB]"
-        local hexTooltipMidlight = "[DDDDDD]"
-        local hexTooltipHighlight = "[FFCC00]"
-
-        --tooltips
-        local multiSelectTooltip = hexTooltipMidlight.."\nBUTTONS AFFECT ALL SELECTED CARDS[-]"
-
-        local buttonTooltipOwnershipGem =
-            "CONTROLLER: ["..controlColorHex.."]"..cardController.."[-]\n"..
-            "OWNER: ["..ownerColorHex.."]"..cardOwner.."[-]\n"..
-            hexTooltipLowlight.."L-Click: Become CONTROLLER\n"..
-            "R-Click: Become OWNER[-]\n"..
-            multiSelectInstruction
-        
-        local buttonTooltipCounterSingleClick = 
-            hexTooltipLowlight.."L-Click: +1      R-Click: -1[-]\n"..
-            hexTooltipHighlight.."Button Below:[-]"..hexTooltipMidlight.." Add/Subtract 10[-]\n"..
-            multiSelectInstruction
-         
-        local buttonTooltipCounterTenClick = 
-            hexTooltipLowlight.."L-Click: +10     R-Click: -10[-]\n"..
-            multiSelectInstruction
-
-        local buttonTooltipPowerrSingleClick = 
-            hexTooltipLowlight.."L-Click: +1     R-Click: -1[-]\n"..
-            hexTooltipHighlight.."Button Below:[-]"..hexTooltipMidlight.." Add/Subtract BOTH[-]\n"..
-            multiSelectInstruction
-
-        local buttonTooltipToughnessSingleClick = 
-            hexTooltipLowlight.."L-Click: +1     R-Click: -1[-]\n"..
-            hexTooltipHighlight.."Button Below:[-]"..hexTooltipMidlight.." Add/Subtract BOTH[-]\n"..
-            multiSelectInstruction
-
-        local buttonTooltipPowTouSingleClick = 
-            hexTooltipLowlight.."L-Click: +1/+1     R-Click: -1/-1[-]\n"..
-            multiSelectInstruction
-
-        local buttonTooltipPlusOneSingleClick = 
-            hexTooltipLowlight.."L-Click: +1/+1      R-Click: -1/-1[-]\n"..
-            hexTooltipHighlight.."Button Below:[-]"..hexTooltipMidlight.." Add/Subtract 10[-]\n"..
-            multiSelectInstruction
-         
-        local buttonTooltipCounterTenClick = 
-            hexTooltipLowlight.."L-Click: +10/+10     R-Click: -10/-10[-]\n"..
-            multiSelectInstruction
-
-        local buttonTooltipToggleDisplayCounters =
-            hexTooltipHighlight..(data.displayCounters == true and "HIDE" or "SHOW").."[-]"..hexTooltipLowlight.." LOYALTY/NUMBER COUNTER\n"..
-            hexTooltipLowlight.."Toggles a simple numeric counter on the card\n"
-            multiSelectInstruction
-
-        local buttonTooltipToggleDisplayPlusOne =
-
-        local buttonTooltipToggleDisplayPowTou =
-
         --simplecounter buttons
         if data.displayCounters then
             local verticalSize = 130
@@ -440,7 +611,7 @@ function createButtons(t)
             --counter button
             t.object.createButton({
                 label=" "..data.genericCount.." ",
-                tooltip = "Right-Click to Subtract",
+                tooltip = buttonTooltipCounterSingleClick,
 
                 click_function='receiveCounterClick',
                 function_owner=self,
@@ -464,7 +635,7 @@ function createButtons(t)
 
             --delta 10 button
             t.object.createButton({
-                tooltip = "Increase by 10\nRight-Click to Subtract",
+                tooltip = buttonTooltipCounterTenClick,
                 click_function='receiveTenCounterClick',
                 function_owner=self,
 
@@ -504,7 +675,7 @@ function createButtons(t)
 
             --powtou increase both button
             t.object.createButton({
-                tooltip = "Change Both\nRight-Click to Subtract",
+                tooltip = buttonTooltipPowTouSingleClick,
                 click_function='receivePowTouClick',
                 function_owner=self,
 
@@ -588,9 +759,9 @@ function createButtons(t)
             --powtou pow
             t.object.createButton({
                 label=data.power.." ",
+                tooltip = buttonTooltipPowerSingleClick,
 
                 click_function='receivePowerClick',
-                tooltip = "Right-Click to Subtract",
                 function_owner=self,
 
                 position=
@@ -613,9 +784,9 @@ function createButtons(t)
             --powtou tou
             t.object.createButton({
                 label=" "..data.toughness,
+                tooltip = buttonTooltipToughnessSingleClick,
 
                 click_function='receiveToughnessClick',
-                tooltip = "Right-Click to Subtract",
                 function_owner=self,
 
                 position=
@@ -656,7 +827,7 @@ function createButtons(t)
 
             -- delta 10 button
             t.object.createButton({
-                tooltip = "Add +10/+10\nRight-Click to Subtract",
+                tooltip = buttonTooltipPlusOneTenClick,
                 click_function='receiveTenPlusOneClick',
                 function_owner=self,
 
@@ -700,7 +871,7 @@ function createButtons(t)
             --plus one button
             t.object.createButton({
                 label=plusOneLabelString,
-                tooltip = "Right-Click to Subtract",
+                tooltip = buttonTooltipPlusOneSingleClick,
 
                 click_function='receivePlusOneClick',
                 function_owner=self,
@@ -728,16 +899,6 @@ function createButtons(t)
             local verticalSize = 280
             local horizontalSize = 500
             local buttonScale = {0.375,0.375,0.375} -- used to fix weird scaling issues on small size values
-            
-            local cardOwner = data.ownerColor == nil and "Grey" or data.ownerColor
-            local ownershipColor = Color.fromString(cardOwner)
-            local ownerColorHex = ownershipColor:toHex(false)
-            
-            local cardController = data.controllerColor == nil and "Grey" or data.controllerColor
-            local controlColor = Color.fromString(cardController)
-            local controlColorHex = controlColor:toHex(false)
-
-            
 
             --bg with ownership function
             t.object.createButton({
@@ -963,6 +1124,77 @@ function receiveTenPlusOneClick(tar,ply,alt)
     PropagateValueChange(dataTable)
 end
 
+--Toolbox Functions
+function ExactCopy (tar, ply, alt)
+    --do the thing
+end
+
+function ResetExactCopyOffset (tar)
+    enc = Global.getVar("Encoder")
+    if enc ~= nil then
+        local data = enc.call("APIgetObjectData",{obj = tar, propID = pID})
+        data.exactCopyOffset = 0
+        enc.call("APIsetObjectData",{obj = tar, propID = pID, data = data})
+    end
+end
+
+function GetAmuzetsCardImporter ()
+    enc = Global.getVar("Encoder")
+    if enc ~= nil then
+        local encoderToolTable = enc.getTable("Tools")
+        local amuzetCardImporter = encoderToolTable["Card Importer"].funcOwner
+        return amuzetCardImporter
+    end
+end
+
+lockReImport = false
+function ReImport (tar, ply, alt)
+    if (not lockReImport) then return end
+
+    amuzetCardImporter = GetAmuzetsCardImporter()
+    if amuzetCardImporter ~= nil and amuzetCardImporter.object ~= nil then
+        --do the thing
+
+        lockReImport = true
+        --used to avoid spam-clicking
+        Timer.destroy("reImportTimer"..tar.guid)
+        Timer.create({
+            identifier = "reImportTimer"..tar.guid,
+            function_name = "ReEnableReImport",
+            function_owner = self,
+            delay = 3
+        })
+    end
+end
+
+function ReEnableReImport ()
+    lockReImport = false
+end
+
+lockEmblemsAndTokens = false
+function EmblemsAndTokens (tar, ply, alt)
+    if (not lockEmblemsAndTokens) then return end
+
+    amuzetCardImporter = GetAmuzetsCardImporter()
+    if amuzetCardImporter ~= nil and amuzetCardImporter.object ~= nil then
+        --do the thing
+
+        lockEmblemsAndTokens = true
+        --used to avoid spam-clicking
+        Timer.destroy("emblemsAndTokensTimer"..tar.guid)
+        Timer.create({
+            identifier = "emblemsAndTokensTimer"..tar.guid,
+            function_name = "ReEnableEmblemsAndTokens",
+            function_owner = self,
+            delay = 3
+        })
+    end
+end
+
+function ReEnableEmblemsAndTokens ()
+    lockEmblemsAndTokens = false
+end
+
 --Parse Functions
 function parseCardData(object, enc)
     if enc ~= nil then
@@ -1084,6 +1316,10 @@ end
 --Auto Functions
 function onObjectDropped (player, object)
     TryTimedEncoding(object)
+end
+
+function onObjectSpawn(obj)
+    broadcastToAll(obj.tag)
 end
 
 function TryTimedEncoding(object)
