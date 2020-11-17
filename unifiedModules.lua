@@ -249,10 +249,15 @@ function registerModule()
                 power=0, toughness=0,
                 plusOneCounters=0,
                 genericCount = 0, hasLoyalty = false, hasOtherCounter = false,
+                planesWalkerSlots = {},
+                --backsidePlaneswalkerSlots = {},
 
                 displayCounters = false,
                 displayPowTou = false,
                 displayPlusOne = false,
+
+                --doubleFaceType = "none",
+                --card importer doesn't provide complete double-faced data
 
                 exactCopyOffset = 0,
             
@@ -448,9 +453,12 @@ function createButtons(t)
                 color = data.displayCounters and buttonBackgroundColorOn or buttonBackgroundColorOff,
                 hover_color = buttonHoverColor,
 
-                position=
+                rotation = {0, 0, 90 - 90 * flip},
+                position =
                 {
-                    -horizontalOffset, 0.35, verticalOffset + 2 * verticalSpacing
+                   - horizontalOffset * flip * scaler.x,
+                    0.35*flip*scaler.z,
+                    verticalOffset + 2 * verticalSpacing * scaler.y
                 }
             })
 
@@ -470,9 +478,12 @@ function createButtons(t)
                 color = data.displayPowTou and buttonBackgroundColorOn or buttonBackgroundColorOff,
                 hover_color = buttonHoverColor,
 
-                position=
+                rotation = {0, 0, 90 - 90 * flip},
+                position =
                 {
-                    -horizontalOffset, 0.35, verticalOffset + 1 * verticalSpacing
+                    -horizontalOffset * flip * scaler.x,
+                    0.35*flip*scaler.z,
+                    verticalOffset + 1 * verticalSpacing * scaler.y
                 }
             })
 
@@ -492,9 +503,11 @@ function createButtons(t)
                 color = data.displayPlusOne and buttonBackgroundColorOn or buttonBackgroundColorOff,
                 hover_color = buttonHoverColor,
 
-                position=
+                position =
                 {
-                    -horizontalOffset, 0.35, verticalOffset + 0 * verticalSpacing
+                    -horizontalOffset * flip * scaler.x,
+                    0.35*flip*scaler.z,
+                    verticalOffset + 0 * verticalSpacing * scaler.y
                 }
             })
 
@@ -514,9 +527,12 @@ function createButtons(t)
                 color = buttonBackgroundColorOff,
                 hover_color = buttonHoverColor,
 
-                position=
+                rotation = {0, 0, 90 - 90 * flip},
+                position =
                 {
-                    horizontalOffset, 0.35, verticalOffset + 0 * verticalSpacing
+                    horizontalOffset * flip * scaler.x,
+                    0.35*flip*scaler.z,
+                    verticalOffset + 0 * verticalSpacing * scaler.y
                 }
             })
 
@@ -537,9 +553,12 @@ function createButtons(t)
                     color = buttonBackgroundColorOff,
                     hover_color = buttonHoverColor,
 
-                    position=
+                    rotation = {0, 0, 90 - 90 * flip},
+                    position =
                     {
-                        horizontalOffset, 0.35, verticalOffset + 1 * verticalSpacing
+                        horizontalOffset * flip * scaler.x,
+                        0.35*flip*scaler.z,
+                        verticalOffset + 1 * verticalSpacing * scaler.y
                     }
                 })
             else
@@ -558,9 +577,12 @@ function createButtons(t)
                     color = buttonBackgroundColorError,
                     hover_color = buttonBackgroundColorError,
 
-                    position=
+                    rotation = {0, 0, 90 - 90 * flip},
+                    position =
                     {
-                        horizontalOffset, 0.35, verticalOffset + 1 * verticalSpacing
+                        horizontalOffset * flip * scaler.x,
+                        0.35*flip*scaler.z,
+                        verticalOffset + 1 * verticalSpacing * scaler.y
                     }
                 })
             end
@@ -582,11 +604,13 @@ function createButtons(t)
                     color = buttonBackgroundColorOff,
                     hover_color = buttonHoverColor,
     
-                    position=
+                    rotation = {0, 180, 90 - 90 * flip}, -- the label looks like an emblem when upside down
+                    position =
                     {
-                        horizontalOffset, 0.35, verticalOffset + 2 * verticalSpacing
-                    },
-                    rotation = {0, 180, 0} -- the label looks like an emblem when upside down
+                        horizontalOffset * flip * scaler.x,
+                        0.35*flip*scaler.z,
+                        verticalOffset + 2 * verticalSpacing * scaler.y
+                    }
                 })
             else
                 t.object.createButton({
@@ -604,11 +628,13 @@ function createButtons(t)
                     color = buttonBackgroundColorError,
                     hover_color = buttonBackgroundColorError,
     
-                    position=
+                    rotation = {0, 180, 90 - 90 * flip}, -- the label looks like an emblem when upside down
+                    position =
                     {
-                        horizontalOffset, 0.35, verticalOffset + 2 * verticalSpacing
-                    },
-                    rotation = {0, 180, 0} -- the label looks like an emblem when upside down
+                        horizontalOffset * flip * scaler.x,
+                        0.35*flip*scaler.z,
+                        verticalOffset + 2 * verticalSpacing * scaler.y
+                    }
                 })
             end
             
@@ -692,6 +718,106 @@ function createButtons(t)
 
                 rotation={0,0,90-90*flip}
             })
+
+            --test planeswalker ability
+            local pwAbilityHorizontalOffset = 1.055
+            
+            --local pwAbilityVerticalSlot0 = 0.3
+            --pwAbilityVerticalSlot1 = 0.58
+            --pwAbilityVerticalSlot2 = 0.82
+            --pwAbilityVerticalSlot3 = 1.06
+            
+            --when there are ONLY 2 slots being, BOTH with pw abilities, it uses this spacing instead
+            --apparently only arlinn kord meets these conditions
+            local pwAbilityVerticalDualSlot1 = 0.62
+            local pwAbilityVerticalDualSlot2 = 1.02
+
+            local pwTinyTextOffset = 0.006
+
+            local pwAbilityDelta = 1
+            local pwAbilityText = (pwAbilityDelta > 0 and "+" or "")..pwAbilityDelta..(pwAbilityDelta ~= 0 and " " or "")
+
+            local pwAbilityFontSize = 180
+            local pwNeutralAbilityFontSize = pwAbilityFontSize * 1.7
+            local isNeutralAbility = pwAbilityDelta == 0
+            --■☗
+            --arrow up = minus, neutral = minus, arrow down = plus
+
+            
+
+            t.object.createButton({
+                label = isNeutralAbility and "■" or "☗",
+                tooltip = buttonTooltipCounterSingleClick,
+
+                click_function='receiveCounterClick',
+                function_owner=self,
+
+                position =
+                {
+                    pwAbilityHorizontalOffset * ((horizontalOffset)*flip*scaler.x),
+                    0.35*flip*scaler.z,
+                    pwAbilityVerticalSlot0 * scaler.y
+                },
+
+                height= 90,
+                width= 120,
+                color = colorDarkGrey,
+
+                font_size= isNeutralAbility and pwNeutralAbilityFontSize or pwAbilityFontSize,
+                font_color = colorLightGrey,
+
+                rotation={0,pwAbilityDelta < 0 and 180 or 0,90-90*flip},
+                scale = {0.8, 0.55, 0.55}
+            })
+
+            t.object.createButton({
+                label = isNeutralAbility and "■" or "☗",
+                tooltip = buttonTooltipCounterSingleClick,
+
+                click_function='receiveCounterClick',
+                function_owner=self,
+
+                position =
+                {
+                    pwAbilityHorizontalOffset * ((horizontalOffset)*flip*scaler.x),
+                    0.35*flip*scaler.z,
+                    pwAbilityVerticalSlot0 * scaler.y
+                },
+
+                height= 0,
+                width= 0,
+                color = colorDarkGrey,
+
+                font_size= (isNeutralAbility and pwNeutralAbilityFontSize or pwAbilityFontSize) * 0.8,
+                font_color = colorDarkGrey,
+
+                rotation={180,pwAbilityDelta < 0 and 0 or 180,90-90*flip},
+                scale = {0.8, 0.55, 0.55}
+            })
+
+            t.object.createButton({
+                label = pwAbilityText,
+                tooltip = buttonTooltipCounterSingleClick,
+
+                click_function='receiveCounterClick',
+                function_owner=self,
+
+                position =
+                {
+                    pwAbilityHorizontalOffset * ((horizontalOffset)*flip*scaler.x),
+                    0.35*flip*scaler.z,
+                    pwAbilityVerticalSlot0 * scaler.y + (pwAbilityDelta < 0 and pwTinyTextOffset or -pwTinyTextOffset)
+                },
+
+                height= 0,
+                width= 0,
+
+                font_size= 55,
+                font_color = Color.White,
+
+                rotation={0,0,90-90*flip}
+            })
+
         end
 
         --powtou buttons
