@@ -249,8 +249,7 @@ function registerModule()
                 power=0, toughness=0,
                 plusOneCounters=0,
                 genericCount = 0, hasLoyalty = false, hasOtherCounter = false,
-                planesWalkerSlots = {},
-                --backsidePlaneswalkerSlots = {},
+                planesWalkerAbilitySlots = {frontFace = {}, frontFaceCount = 0, backFace = {}, backFaceCount = 0},
 
                 displayCounters = false,
                 displayPowTou = false,
@@ -412,12 +411,12 @@ function createButtons(t)
         local buttonTooltipEmblemsTokens =
             singleSelectTooltip..
             hexTooltipHighlight.."EMBLEMS & TOKENS[-]\n"..
-            hexTooltipMidlight.."Imports this card's emblems & tokens through scryfall[-]\n\n"..
+            hexTooltipMidlight.."Imports this card's emblems & tokens through Scryfall[-]\n\n"..
             hexTooltipLowlight.."Uses Amuzet's Card Importer"
 
         local buttonTooltipEmblemsTokensMissingImporter =
             hexTooltipHighlight.."EMBLEMS & TOKENS[-]\n"..
-            hexTooltipMidlight.."Imports this card's emblems & tokens through scryfall[-]\n\n"..
+            hexTooltipMidlight.."Imports this card's emblems & tokens through Scryfall[-]\n\n"..
             hexTooltipRedlight.."REQUIRES AMUZET'S CARD IMPORTER[-]"
 
         if true then --side buttons, toggles on the left and utils on the right
@@ -722,10 +721,10 @@ function createButtons(t)
             --test planeswalker ability
             local pwAbilityHorizontalOffset = 1.055
             
-            --local pwAbilityVerticalSlot0 = 0.3
-            --pwAbilityVerticalSlot1 = 0.58
-            --pwAbilityVerticalSlot2 = 0.82
-            --pwAbilityVerticalSlot3 = 1.06
+            local pwAbilityVerticalSlot0 = 0.3
+            local pwAbilityVerticalSlot1 = 0.58
+            local pwAbilityVerticalSlot2 = 0.82
+            local pwAbilityVerticalSlot3 = 1.06
             
             --when there are ONLY 2 slots being, BOTH with pw abilities, it uses this spacing instead
             --apparently only arlinn kord meets these conditions
@@ -743,7 +742,7 @@ function createButtons(t)
             --■☗
             --arrow up = minus, neutral = minus, arrow down = plus
 
-            
+            if data.planesWalkerAbilitySlots
 
             t.object.createButton({
                 label = isNeutralAbility and "■" or "☗",
@@ -759,8 +758,8 @@ function createButtons(t)
                     pwAbilityVerticalSlot0 * scaler.y
                 },
 
-                height= 90,
-                width= 120,
+                height= 100,
+                width= 140,
                 color = colorDarkGrey,
 
                 font_size= isNeutralAbility and pwNeutralAbilityFontSize or pwAbilityFontSize,
@@ -1486,6 +1485,8 @@ function parseCardData(object, enc)
             if loyaltyValue ~= nil then
                 data.genericCount = tonumber(loyaltyValue)
                 data.hasLoyalty = true
+
+                data.planesWalkerAbilitySlots = getPlaneswalkerAbilitiesFromCard(description)
             else
                 data.hasLoyalty = false
                 data.hasOtherCounter = hasKeywordOrNamedCounter(object)
@@ -1534,6 +1535,58 @@ function getLoyaltyFromCard(description)
         loyaltyValue = string.match(parsedValue,"%d+")
     end
     return loyaltyValue
+end
+
+function getPlaneswalkerAbilitiesFromCard(description)
+    local planeswalkerAbilityIndex = 1
+    local parsedAbilities = {frontFace = {}, backFace = {}}
+    local backFaceChecker = 0
+
+    description = description.."\n" --workaround for double-faced cards, this gives regular cards wrong skill as well
+    while true do
+        local capturedString = string.match(description, ".-\n")
+
+        if (capturedString ~= nil) then
+            if capturedString:find("%/%/") then
+                --cleans up name & type lines from double-faced cards
+                description = description:gsub(".-\n.-\n", "", 1)
+
+                backFaceChecker = backFaceChecker + 1
+                if backFaceChecker == 2 then planeswalkerAbilityIndex = 1 end
+                --reset index when moving to backFace slots
+            else
+                capturedString = capturedString:gsub("\n","")
+                description = description:gsub(".-\n","",1)
+
+                if capturedString:find("^%[b") == nil then --workaround forces this
+                    parsedAbilities[(backFaceChecker < 2 and "frontFace" or "backFace")][planeswalkerAbilityIndex] = capturedString
+                    planeswalkerAbilityIndex = planeswalkerAbilityIndex + 1
+                end
+            end
+        else
+            break
+        end
+    end
+
+    local planesWalkerAbilitySlots = {frontFace = {}, frontFaceCount = 0, backFace = {}, backFaceCount = 0}
+    for key, value in pairs (parsedAbilities) do
+        --broadcastToAll(key)
+        planesWalkerAbilitySlots[(key.."Count")] = 0
+        for index, value in ipairs (parsedAbilities[key]) do
+            local abilityDelta = string.match(parsedAbilities[key][index], "(%+?[%d%*xX]+)%:")
+            --broadcastToAll(abilityDelta.."  "..tonumber(abilityDelta)
+            if abilityDelta ~= nil then
+                abilityDelta = abilityDelta:find("%*xX+") ~= nil and "X" or (tonumber(abilityDelta) * (abilityDelta:find("%+") ~= nil and 1 or -1))
+            end
+            local abilityText = parsedAbilities[key][index]:gsub(".-%:%s", "", 1)
+
+            planesWalkerAbilitySlots[key][index] = {abilityDelta = abilityDelta, abilityText = abilityText}
+            planesWalkerAbilitySlots[key.."Count"] = planesWalkerAbilitySlots[key.."Count"] + 1
+            --broadcastToAll(planesWalkerAbilitySlots[key.."Count"])
+            --broadcastToAll(abilityText)
+        end
+    end
+    return planesWalkerAbilitySlots
 end
 
 function hasKeywordOrNamedCounter(object)
