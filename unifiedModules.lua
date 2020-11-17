@@ -720,103 +720,107 @@ function createButtons(t)
 
             --test planeswalker ability
             local pwAbilityHorizontalOffset = 1.055
-            
-            local pwAbilityVerticalSlot0 = 0.3
-            local pwAbilityVerticalSlot1 = 0.58
-            local pwAbilityVerticalSlot2 = 0.82
-            local pwAbilityVerticalSlot3 = 1.06
-            
-            --when there are ONLY 2 slots being, BOTH with pw abilities, it uses this spacing instead
-            --apparently only arlinn kord meets these conditions
-            local pwAbilityVerticalDualSlot1 = 0.62
-            local pwAbilityVerticalDualSlot2 = 1.02
 
             local pwTinyTextOffset = 0.006
 
-            local pwAbilityDelta = 1
-            local pwAbilityText = (pwAbilityDelta > 0 and "+" or "")..pwAbilityDelta..(pwAbilityDelta ~= 0 and " " or "")
-
             local pwAbilityFontSize = 180
             local pwNeutralAbilityFontSize = pwAbilityFontSize * 1.7
-            local isNeutralAbility = pwAbilityDelta == 0
             --■☗
             --arrow up = minus, neutral = minus, arrow down = plus
 
-            if data.planesWalkerAbilitySlots
+            if data.planesWalkerAbilitySlots ~= nil and data.planesWalkerAbilitySlots["frontFaceCount"] > 0 then
+                for index, value in ipairs(data.planesWalkerAbilitySlots["frontFace"]) do
+                    if data.planesWalkerAbilitySlots["frontFace"][index]["abilityDelta"] ~= nil then
+                        local pwAbilityDelta = data.planesWalkerAbilitySlots["frontFace"][index]["abilityDelta"]
+                        
+                        local pwAbilityCost = 
+                            type(pwAbilityDelta) == "string" and "-X " or
+                            (pwAbilityDelta > 0 and "+" or "")..pwAbilityDelta..(pwAbilityDelta ~= 0 and " " or "")
+                        --broadcastToAll(pwAbilityCost)
+                        local pwAbilityTooltip =
+                            hexTooltipHighlight..pwAbilityCost.."Loyalty:[-]\n".. 
+                            hexTooltipMidlight..data.planesWalkerAbilitySlots["frontFace"][index]["abilityText"]
 
-            t.object.createButton({
-                label = isNeutralAbility and "■" or "☗",
-                tooltip = buttonTooltipCounterSingleClick,
+                        local isNeutralAbility = pwAbilityDelta == 0
+                        pwAbilityDelta = type(pwAbilityDelta) ~= "number" and 0 or pwAbilityDelta
 
-                click_function='receiveCounterClick',
-                function_owner=self,
+                        local pwAbilityVerticalOffset = GetPlaneswalkerAbilityVerticalOffset (index, data.planesWalkerAbilitySlots["frontFaceCount"])
 
-                position =
-                {
-                    pwAbilityHorizontalOffset * ((horizontalOffset)*flip*scaler.x),
-                    0.35*flip*scaler.z,
-                    pwAbilityVerticalSlot0 * scaler.y
-                },
-
-                height= 100,
-                width= 140,
-                color = colorDarkGrey,
-
-                font_size= isNeutralAbility and pwNeutralAbilityFontSize or pwAbilityFontSize,
-                font_color = colorLightGrey,
-
-                rotation={0,pwAbilityDelta < 0 and 180 or 0,90-90*flip},
-                scale = {0.8, 0.55, 0.55}
-            })
-
-            t.object.createButton({
-                label = isNeutralAbility and "■" or "☗",
-                tooltip = buttonTooltipCounterSingleClick,
-
-                click_function='receiveCounterClick',
-                function_owner=self,
-
-                position =
-                {
-                    pwAbilityHorizontalOffset * ((horizontalOffset)*flip*scaler.x),
-                    0.35*flip*scaler.z,
-                    pwAbilityVerticalSlot0 * scaler.y
-                },
-
-                height= 0,
-                width= 0,
-                color = colorDarkGrey,
-
-                font_size= (isNeutralAbility and pwNeutralAbilityFontSize or pwAbilityFontSize) * 0.8,
-                font_color = colorDarkGrey,
-
-                rotation={180,pwAbilityDelta < 0 and 0 or 180,90-90*flip},
-                scale = {0.8, 0.55, 0.55}
-            })
-
-            t.object.createButton({
-                label = pwAbilityText,
-                tooltip = buttonTooltipCounterSingleClick,
-
-                click_function='receiveCounterClick',
-                function_owner=self,
-
-                position =
-                {
-                    pwAbilityHorizontalOffset * ((horizontalOffset)*flip*scaler.x),
-                    0.35*flip*scaler.z,
-                    pwAbilityVerticalSlot0 * scaler.y + (pwAbilityDelta < 0 and pwTinyTextOffset or -pwTinyTextOffset)
-                },
-
-                height= 0,
-                width= 0,
-
-                font_size= 55,
-                font_color = Color.White,
-
-                rotation={0,0,90-90*flip}
-            })
-
+                        t.object.createButton({
+                            label = isNeutralAbility and "■" or "☗",
+                            tooltip = pwAbilityTooltip,
+            
+                            click_function='receiveCounterClick',
+                            function_owner=self,
+            
+                            position =
+                            {
+                                pwAbilityHorizontalOffset * ((horizontalOffset)*flip*scaler.x),
+                                0.35*flip*scaler.z,
+                                pwAbilityVerticalOffset * scaler.y
+                            },
+            
+                            height= 100,
+                            width= 140,
+                            color = colorDarkGrey,
+            
+                            font_size= isNeutralAbility and pwNeutralAbilityFontSize or pwAbilityFontSize,
+                            font_color = colorLightGrey,
+            
+                            rotation={0,pwAbilityDelta < 0 and 180 or 0,90-90*flip},
+                            scale = {0.8, 0.55, 0.55}
+                        })
+            
+                        t.object.createButton({
+                            label = isNeutralAbility and "■" or "☗",
+                            tooltip = buttonTooltipCounterSingleClick,
+            
+                            click_function='receiveCounterClick',
+                            function_owner=self,
+            
+                            position =
+                            {
+                                pwAbilityHorizontalOffset * ((horizontalOffset)*flip*scaler.x),
+                                0.35*flip*scaler.z,
+                                pwAbilityVerticalOffset * scaler.y
+                            },
+            
+                            height= 0,
+                            width= 0,
+                            color = colorDarkGrey,
+            
+                            font_size= (isNeutralAbility and pwNeutralAbilityFontSize or pwAbilityFontSize) * 0.8,
+                            font_color = colorDarkGrey,
+            
+                            rotation={180,pwAbilityDelta < 0 and 0 or 180,90-90*flip},
+                            scale = {0.8, 0.55, 0.55}
+                        })
+            
+                        t.object.createButton({
+                            label = pwAbilityCost,
+                            tooltip = buttonTooltipCounterSingleClick,
+            
+                            click_function='receiveCounterClick',
+                            function_owner=self,
+            
+                            position =
+                            {
+                                pwAbilityHorizontalOffset * ((horizontalOffset)*flip*scaler.x),
+                                0.35*flip*scaler.z,
+                                (pwAbilityVerticalOffset + (pwAbilityDelta <= 0 and pwTinyTextOffset or -pwTinyTextOffset)) * scaler.y
+                            },
+            
+                            height= 0,
+                            width= 0,
+            
+                            font_size= 55,
+                            font_color = Color.White,
+            
+                            rotation={0,0,90-90*flip}
+                        })
+                    end
+                end
+            end
         end
 
         --powtou buttons
@@ -1124,6 +1128,47 @@ function createButtons(t)
                 scale = buttonScale
             })
         end
+    end
+end
+
+function GetPlaneswalkerAbilityVerticalOffset (abilityIndex, abilityCount)
+    local fourSlotOffsets = {
+        0.3,
+        0.58,
+        0.82,
+        1.06
+    }
+
+    local threeSlotOffsets = {
+        0.52,
+        0.78,
+        1.06
+    }
+
+    --when there are ONLY 2 slots being, BOTH with pw abilities, it uses this spacing instead
+    --apparently only arlinn kord meets these conditions
+    local twoSlotOffsets = {
+        0.62,
+        1.02
+    }
+    
+    --broadcastToAll(abilityIndex.."  "..abilityCount)
+    if abilityIndex >= 1 and abilityIndex <= 4 then
+        if (abilityCount >= 4) then
+            if (abilityIndex > 4) then broadcastToAll("Invalid planeswalker ability index received: "..abilityIndex) end
+            
+            return fourSlotOffsets[math.min(abilityIndex, 4)]
+        elseif (abilityCount == 3) then
+            return threeSlotOffsets[math.min(abilityIndex, 3)]
+        elseif (abilityCount == 2) then
+            --need to check special cases for this one
+            return twoSlotOffsets[math.min(abilityIndex, 2)]
+        else
+            --no planeswalker has only 1 slot
+            return fourSlotOffsets[math.min(abilityIndex + 1, 4)]
+        end
+    else
+        broadcastToAll("Invalid planeswalker ability index received: "..abilityIndex)
     end
 end
 
@@ -1544,28 +1589,29 @@ function getPlaneswalkerAbilitiesFromCard(description)
 
     description = description.."\n" --workaround for double-faced cards, this gives regular cards wrong skill as well
     while true do
-        local capturedString = string.match(description, ".-\n")
+        broadcastToAll(description:len())
+        capturedLines = {}
+        for line in string.gmatch(description, ".-\n") do
+            table.insert(capturedLines, line)
+        end
 
-        if (capturedString ~= nil) then
-            if capturedString:find("%/%/") then
-                --cleans up name & type lines from double-faced cards
-                description = description:gsub(".-\n.-\n", "", 1)
-
+        for index, value in ipairs(capturedLines) do
+            if capturedLines[index]:find("%/%/") then
+                index = index + 1 -- skip next line
                 backFaceChecker = backFaceChecker + 1
                 if backFaceChecker == 2 then planeswalkerAbilityIndex = 1 end
                 --reset index when moving to backFace slots
             else
-                capturedString = capturedString:gsub("\n","")
-                description = description:gsub(".-\n","",1)
+                capturedLines[index] = capturedLines[index]:gsub("\n","")
+                --description = description:gsub(".-\n","",1)
 
-                if capturedString:find("^%[b") == nil then --workaround forces this
-                    parsedAbilities[(backFaceChecker < 2 and "frontFace" or "backFace")][planeswalkerAbilityIndex] = capturedString
+                if capturedLines[index]:find("^%[b") == nil then --workaround forces this
+                    parsedAbilities[(backFaceChecker < 2 and "frontFace" or "backFace")][planeswalkerAbilityIndex] = capturedLines[index]
                     planeswalkerAbilityIndex = planeswalkerAbilityIndex + 1
                 end
             end
-        else
-            break
         end
+        break
     end
 
     local planesWalkerAbilitySlots = {frontFace = {}, frontFaceCount = 0, backFace = {}, backFaceCount = 0}
@@ -1574,9 +1620,8 @@ function getPlaneswalkerAbilitiesFromCard(description)
         planesWalkerAbilitySlots[(key.."Count")] = 0
         for index, value in ipairs (parsedAbilities[key]) do
             local abilityDelta = string.match(parsedAbilities[key][index], "(%+?[%d%*xX]+)%:")
-            --broadcastToAll(abilityDelta.."  "..tonumber(abilityDelta)
             if abilityDelta ~= nil then
-                abilityDelta = abilityDelta:find("%*xX+") ~= nil and "X" or (tonumber(abilityDelta) * (abilityDelta:find("%+") ~= nil and 1 or -1))
+                abilityDelta = abilityDelta:find("[xX]+") ~= nil and "X" or (tonumber(abilityDelta) * (abilityDelta:find("%+") ~= nil and 1 or -1))
             end
             local abilityText = parsedAbilities[key][index]:gsub(".-%:%s", "", 1)
 
