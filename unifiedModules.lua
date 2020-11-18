@@ -732,7 +732,6 @@ function createButtons(t)
                 for index, value in ipairs(data.planesWalkerAbilitySlots["frontFace"]) do
                     if data.planesWalkerAbilitySlots["frontFace"][index]["abilityDelta"] ~= nil then
                         local pwAbilityDelta = data.planesWalkerAbilitySlots["frontFace"][index]["abilityDelta"]
-                        
                         local pwAbilityCost = 
                             type(pwAbilityDelta) == "string" and "-X " or
                             (pwAbilityDelta > 0 and "+" or "")..pwAbilityDelta..(pwAbilityDelta ~= 0 and " " or "")
@@ -742,7 +741,7 @@ function createButtons(t)
                             hexTooltipMidlight..data.planesWalkerAbilitySlots["frontFace"][index]["abilityText"]
 
                         local isNeutralAbility = pwAbilityDelta == 0
-                        pwAbilityDelta = type(pwAbilityDelta) ~= "number" and 0 or pwAbilityDelta
+                        pwAbilityDelta = type(pwAbilityDelta) ~= "number" and -1 or pwAbilityDelta
 
                         local pwAbilityVerticalOffset = GetPlaneswalkerAbilityVerticalOffset (index, data.planesWalkerAbilitySlots["frontFaceCount"])
 
@@ -807,7 +806,7 @@ function createButtons(t)
                             {
                                 pwAbilityHorizontalOffset * ((horizontalOffset)*flip*scaler.x),
                                 0.35*flip*scaler.z,
-                                (pwAbilityVerticalOffset + (pwAbilityDelta <= 0 and pwTinyTextOffset or -pwTinyTextOffset)) * scaler.y
+                                (pwAbilityVerticalOffset + (pwAbilityDelta <= 0 and pwTinyTextOffset*2 or -pwTinyTextOffset)) * scaler.y
                             },
             
                             height= 0,
@@ -1455,7 +1454,7 @@ function ReImport (tar, ply, alt)
 
     amuzetCardImporter = GetAmuzetsCardImporter()
     if amuzetCardImporter ~= nil then
-        importerRequestTable = CreateImporterRequestTable(tar, ply)
+        local importerRequestTable = CreateImporterRequestTable(tar, ply)
         importerRequestTable.full = "Reimporting Card"
 
         amuzetCardImporter.call('Importer', importerRequestTable)
@@ -1524,6 +1523,7 @@ function parseCardData(object, enc)
             data.hasParsed = true
 
             local description = object.getDescription()
+            description = description:gsub("−","-") --no, I mean the REAL minus sign
 
             local loyaltyValue = getLoyaltyFromCard(description)
 
@@ -1534,7 +1534,7 @@ function parseCardData(object, enc)
                 data.planesWalkerAbilitySlots = getPlaneswalkerAbilitiesFromCard(description)
             else
                 data.hasLoyalty = false
-                data.hasOtherCounter = hasKeywordOrNamedCounter(object)
+                data.hasOtherCounter = hasKeywordOrNamedCounter(object, description)
             end
             data.displayCounters = autoActivateCounter and (data.hasLoyalty or data.hasOtherCounter)
 
@@ -1587,13 +1587,8 @@ function getPlaneswalkerAbilitiesFromCard(description)
     local parsedAbilities = {frontFace = {}, backFace = {}}
     local backFaceChecker = 0
 
-    description = description.."\n" --workaround for double-faced cards, this gives regular cards wrong skill as well
     while true do
-        broadcastToAll(description:len())
-        capturedLines = {}
-        for line in string.gmatch(description, ".-\n") do
-            table.insert(capturedLines, line)
-        end
+        local capturedLines = string.splitUsingFind(description, "\n")
 
         for index, value in ipairs(capturedLines) do
             if capturedLines[index]:find("%/%/") then
@@ -1602,9 +1597,6 @@ function getPlaneswalkerAbilitiesFromCard(description)
                 if backFaceChecker == 2 then planeswalkerAbilityIndex = 1 end
                 --reset index when moving to backFace slots
             else
-                capturedLines[index] = capturedLines[index]:gsub("\n","")
-                --description = description:gsub(".-\n","",1)
-
                 if capturedLines[index]:find("^%[b") == nil then --workaround forces this
                     parsedAbilities[(backFaceChecker < 2 and "frontFace" or "backFace")][planeswalkerAbilityIndex] = capturedLines[index]
                     planeswalkerAbilityIndex = planeswalkerAbilityIndex + 1
@@ -1616,27 +1608,41 @@ function getPlaneswalkerAbilitiesFromCard(description)
 
     local planesWalkerAbilitySlots = {frontFace = {}, frontFaceCount = 0, backFace = {}, backFaceCount = 0}
     for key, value in pairs (parsedAbilities) do
-        --broadcastToAll(key)
         planesWalkerAbilitySlots[(key.."Count")] = 0
         for index, value in ipairs (parsedAbilities[key]) do
-            local abilityDelta = string.match(parsedAbilities[key][index], "(%+?[%d%*xX]+)%:")
-            if abilityDelta ~= nil then
-                abilityDelta = abilityDelta:find("[xX]+") ~= nil and "X" or (tonumber(abilityDelta) * (abilityDelta:find("%+") ~= nil and 1 or -1))
+            local tooltipIndex = parsedAbilities[key][index]:find("%:%s")
+            local abilityDelta = nil
+            if tooltipIndex ~= nil then
+                abilityDelta = parsedAbilities[key][index]:sub(1, tooltipIndex -1)
+                abilityDelta = abilityDelta:find("[xX]+") ~= nil and "X" or tonumber(abilityDelta)
             end
-            local abilityText = parsedAbilities[key][index]:gsub(".-%:%s", "", 1)
+            local abilityText = tooltipIndex ~= nil and parsedAbilities[key][index]:sub(tooltipIndex + 2) or parsedAbilities[key][index]
 
             planesWalkerAbilitySlots[key][index] = {abilityDelta = abilityDelta, abilityText = abilityText}
             planesWalkerAbilitySlots[key.."Count"] = planesWalkerAbilitySlots[key.."Count"] + 1
-            --broadcastToAll(planesWalkerAbilitySlots[key.."Count"])
-            --broadcastToAll(abilityText)
         end
     end
     return planesWalkerAbilitySlots
 end
 
-function hasKeywordOrNamedCounter(object)
+function string.splitUsingFind(text, separator)
+    --by @BoneWhite#6514 (discord id)
+    local splitTable = {}
+    while true do
+        local index = text:find(separator)
+        if not index then
+            table.insert(splitTable,text)
+            break
+        else
+            table.insert(splitTable,text:sub(1,index-1))
+            text = text:sub(index+1)
+        end
+    end
+    return splitTable
+end
+
+function hasKeywordOrNamedCounter(object, description)
     local keywordCounters = {"Cumulative upkeep", "Suspend", "Vanishing", "Fading", "after III"}
-    local description = object.getDescription()
 
     for index, keywordString in ipairs(keywordCounters) do
         if string.find(description, keywordString) then
@@ -1644,8 +1650,8 @@ function hasKeywordOrNamedCounter(object)
         end
     end
     local namedCounterCheckParse
-    namedCounterCheckParse = string.match(object.getDescription(), "[pP]ut %a+ %a+ counters? on %a+")
-    if namedCounterCheckParse == nil then namedCounterCheckParse = string.match(object.getDescription(), "with %a+ %a+ counters? on %a+") end
+    namedCounterCheckParse = string.match(description, "[pP]ut %a+ %a+ counters? on %a+")
+    if namedCounterCheckParse == nil then namedCounterCheckParse = string.match(description, "with %a+ %a+ counters? on %a+") end
 
     local cardNameFirstWord = string.match(object.getName(), "%a+")
 
