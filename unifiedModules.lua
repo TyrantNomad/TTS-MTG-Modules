@@ -252,6 +252,7 @@ function registerModule()
                 planesWalkerAbilitySlots = {frontFace = {}, frontFaceCount = 0, backFace = {}, backFaceCount = 0},
 
                 displayCounters = false,
+                displayPlaneswalkerAbilities = false,
                 displayPowTou = false,
                 displayPlusOne = false,
 
@@ -380,6 +381,8 @@ function createButtons(t)
             multiSelectTooltip..
             hexTooltipHighlight..(data.displayCounters == true and "HIDE" or "SHOW").."[-]"..hexTooltipMidlight.." LOYALTY/NUMBER COUNTER\n"..
             hexTooltipLowlight.."Toggles a number counter on the card"
+        local buttonTooltipToggleDisplayCountersPlaneswalkerAbilities =
+            "\n\n"..hexTooltipHighlight.."R-Click: [-]"..(data.displayPlaneswalkerAbilities and hexTooltipRedlight.."HIDE[-]" or "SHOW")..hexTooltipHighlight.." PLANESWALKER BUTTONS[-]"
 
         local buttonTooltipToggleDisplayPlusOne =
             multiSelectTooltip..
@@ -426,6 +429,7 @@ function createButtons(t)
 
             local buttonTextColorOff = {0.8,0.8,0.8, 0.8}
             local buttonTextColorOn = {1,0.8,0.4, 0.7}
+            local buttonTextColorOnExtra = {0.6, 1, 0.7, 0.7}
             local buttonTextSize = 55
 
             local buttonHoverColor = {0,0,0,1}
@@ -436,15 +440,15 @@ function createButtons(t)
             local horizontalOffset = 1.035
             local verticalOffset = -0.36
 
-            --toggle counters
+            --toggle counters & planeswalker abilities
             t.object.createButton({
                 click_function = 'ToggleDisplayCounter',
                 function_owner = self,
 
                 label = "①",
                 font_size = buttonTextSize + 8,
-                font_color = data.displayCounters and buttonTextColorOn or buttonTextColorOff,
-                tooltip = buttonTooltipToggleDisplayCounters,
+                font_color = data.displayCounters and ((data.hasLoyalty and data.displayPlaneswalkerAbilities) and buttonTextColorOnExtra or buttonTextColorOn) or buttonTextColorOff,
+                tooltip = buttonTooltipToggleDisplayCounters..((data.displayCounters and data.hasLoyalty) and buttonTooltipToggleDisplayCountersPlaneswalkerAbilities or ""),
 
                 height = buttonDimensions,
                 width = buttonDimensions,
@@ -639,7 +643,7 @@ function createButtons(t)
             
         end
         
-        --simplecounter buttons
+        --simplecounter buttons & planeswalker abilities
         if data.displayCounters then
             local verticalSize = 130
             local horizontalSize = 145
@@ -718,105 +722,107 @@ function createButtons(t)
                 rotation={0,0,90-90*flip}
             })
 
-            --test planeswalker ability
-            local pwAbilityHorizontalOffset = 1.055
+            --planeswalker abilities
+            if data.hasLoyalty and data.displayPlaneswalkerAbilities then
+                local pwAbilityHorizontalOffset = 1.055
 
-            local pwTinyTextOffset = 0.006
-
-            local pwAbilityFontSize = 180
-            local pwNeutralAbilityFontSize = pwAbilityFontSize * 1.7
-            --■☗
-            --arrow up = minus, neutral = minus, arrow down = plus
-
-            if data.planesWalkerAbilitySlots ~= nil and data.planesWalkerAbilitySlots["frontFaceCount"] > 0 then
-                for index, value in ipairs(data.planesWalkerAbilitySlots["frontFace"]) do
-                    if data.planesWalkerAbilitySlots["frontFace"][index]["abilityDelta"] ~= nil then
-                        local pwAbilityDelta = data.planesWalkerAbilitySlots["frontFace"][index]["abilityDelta"]
-                        local pwAbilityCost = 
-                            type(pwAbilityDelta) == "string" and "-X " or
-                            (pwAbilityDelta > 0 and "+" or "")..pwAbilityDelta..(pwAbilityDelta ~= 0 and " " or "")
-                        --broadcastToAll(pwAbilityCost)
-                        local pwAbilityTooltip =
-                            hexTooltipHighlight..pwAbilityCost.."Loyalty:[-]\n".. 
-                            hexTooltipMidlight..data.planesWalkerAbilitySlots["frontFace"][index]["abilityText"]
-
-                        local isNeutralAbility = pwAbilityDelta == 0
-                        pwAbilityDelta = type(pwAbilityDelta) ~= "number" and -1 or pwAbilityDelta
-
-                        local pwAbilityVerticalOffset = GetPlaneswalkerAbilityVerticalOffset (index, data.planesWalkerAbilitySlots["frontFaceCount"])
-
-                        t.object.createButton({
-                            label = isNeutralAbility and "■" or "☗",
-                            tooltip = pwAbilityTooltip,
-            
-                            click_function='receiveCounterClick',
-                            function_owner=self,
-            
-                            position =
-                            {
-                                pwAbilityHorizontalOffset * ((horizontalOffset)*flip*scaler.x),
-                                0.35*flip*scaler.z,
-                                pwAbilityVerticalOffset * scaler.y
-                            },
-            
-                            height= 100,
-                            width= 140,
-                            color = colorDarkGrey,
-            
-                            font_size= isNeutralAbility and pwNeutralAbilityFontSize or pwAbilityFontSize,
-                            font_color = colorLightGrey,
-            
-                            rotation={0,pwAbilityDelta < 0 and 180 or 0,90-90*flip},
-                            scale = {0.8, 0.55, 0.55}
-                        })
-            
-                        t.object.createButton({
-                            label = isNeutralAbility and "■" or "☗",
-                            tooltip = buttonTooltipCounterSingleClick,
-            
-                            click_function='receiveCounterClick',
-                            function_owner=self,
-            
-                            position =
-                            {
-                                pwAbilityHorizontalOffset * ((horizontalOffset)*flip*scaler.x),
-                                0.35*flip*scaler.z,
-                                pwAbilityVerticalOffset * scaler.y
-                            },
-            
-                            height= 0,
-                            width= 0,
-                            color = colorDarkGrey,
-            
-                            font_size= (isNeutralAbility and pwNeutralAbilityFontSize or pwAbilityFontSize) * 0.8,
-                            font_color = colorDarkGrey,
-            
-                            rotation={180,pwAbilityDelta < 0 and 0 or 180,90-90*flip},
-                            scale = {0.8, 0.55, 0.55}
-                        })
-            
-                        t.object.createButton({
-                            label = pwAbilityCost,
-                            tooltip = buttonTooltipCounterSingleClick,
-            
-                            click_function='receiveCounterClick',
-                            function_owner=self,
-            
-                            position =
-                            {
-                                pwAbilityHorizontalOffset * ((horizontalOffset)*flip*scaler.x),
-                                0.35*flip*scaler.z,
-                                (pwAbilityVerticalOffset + (pwAbilityDelta <= 0 and pwTinyTextOffset*2 or -pwTinyTextOffset)) * scaler.y
-                            },
-            
-                            height= 0,
-                            width= 0,
-            
-                            font_size= 55,
-                            font_color = Color.White,
-            
-                            rotation={0,0,90-90*flip}
-                        })
+                local pwTinyTextOffset = 0.006
+    
+                local pwAbilityFontSize = 180
+                local pwNeutralAbilityFontSize = pwAbilityFontSize * 1.7
+                --■☗
+                --arrow up = minus, neutral = minus, arrow down = plus
+    
+                if data.planesWalkerAbilitySlots ~= nil and data.planesWalkerAbilitySlots["frontFaceCount"] > 0 then
+                    for index, value in ipairs(data.planesWalkerAbilitySlots["frontFace"]) do
+                        if data.planesWalkerAbilitySlots["frontFace"][index]["abilityDelta"] ~= nil then
+                            local pwAbilityDelta = data.planesWalkerAbilitySlots["frontFace"][index]["abilityDelta"]
+                            local pwAbilityCost = 
+                                type(pwAbilityDelta) == "string" and "-X " or
+                                (pwAbilityDelta > 0 and "+" or "")..pwAbilityDelta..(pwAbilityDelta ~= 0 and " " or "")
+                            --broadcastToAll(pwAbilityCost)
+                            local pwAbilityTooltip =
+                                hexTooltipHighlight..pwAbilityCost.."Loyalty:[-]\n".. 
+                                hexTooltipMidlight..data.planesWalkerAbilitySlots["frontFace"][index]["abilityText"]
+    
+                            local isNeutralAbility = pwAbilityDelta == 0
+                            pwAbilityDelta = type(pwAbilityDelta) ~= "number" and -1 or pwAbilityDelta
+    
+                            local pwAbilityVerticalOffset = GetPlaneswalkerAbilityVerticalOffset (index, data.planesWalkerAbilitySlots["frontFaceCount"])
+    
+                            t.object.createButton({
+                                label = isNeutralAbility and "■" or "☗",
+                                tooltip = pwAbilityTooltip,
+                
+                                click_function='receivePlaneswalkerClickSlot'..index,
+                                function_owner=self,
+                
+                                position =
+                                {
+                                    pwAbilityHorizontalOffset * ((horizontalOffset)*flip*scaler.x),
+                                    0.35*flip*scaler.z,
+                                    pwAbilityVerticalOffset * scaler.y
+                                },
+                
+                                height= 100,
+                                width= 140,
+                                color = colorDarkGrey,
+                
+                                font_size= isNeutralAbility and pwNeutralAbilityFontSize or pwAbilityFontSize,
+                                font_color = colorLightGrey,
+                
+                                rotation={0,pwAbilityDelta < 0 and 180 or 0,90-90*flip},
+                                scale = {0.8, 0.55, 0.55}
+                            })
+                
+                            t.object.createButton({
+                                label = isNeutralAbility and "■" or "☗",
+                                tooltip = buttonTooltipCounterSingleClick,
+                
+                                click_function='doNothing',
+                                function_owner=self,
+                
+                                position =
+                                {
+                                    pwAbilityHorizontalOffset * ((horizontalOffset)*flip*scaler.x),
+                                    0.35*flip*scaler.z,
+                                    pwAbilityVerticalOffset * scaler.y
+                                },
+                
+                                height= 0,
+                                width= 0,
+                                color = colorDarkGrey,
+                
+                                font_size= (isNeutralAbility and pwNeutralAbilityFontSize or pwAbilityFontSize) * 0.8,
+                                font_color = colorDarkGrey,
+                
+                                rotation={180,pwAbilityDelta < 0 and 0 or 180,90-90*flip},
+                                scale = {0.8, 0.55, 0.55}
+                            })
+                
+                            t.object.createButton({
+                                label = pwAbilityCost,
+                                tooltip = buttonTooltipCounterSingleClick,
+                
+                                click_function='doNothing',
+                                function_owner=self,
+                
+                                position =
+                                {
+                                    pwAbilityHorizontalOffset * ((horizontalOffset)*flip*scaler.x),
+                                    0.35*flip*scaler.z,
+                                    (pwAbilityVerticalOffset + (pwAbilityDelta <= 0 and pwTinyTextOffset*2 or -pwTinyTextOffset)) * scaler.y
+                                },
+                
+                                height= 0,
+                                width= 0,
+                
+                                font_size= 55,
+                                font_color = Color.White,
+                
+                                rotation={0,0,90-90*flip}
+                            })
+                        end
                     end
                 end
             end
@@ -1220,7 +1226,7 @@ function UpdateEncoderDataValue (dataTable)
             broadcastToAll("Error in value update attempt, received "..tostring(dataTable.varDelta))
         end
     else
-        broadcastToAll("Overriding nil value")
+        broadcastToAll("Overriding nil value for: "..dataTable.varName)
         objectData[dataTable.varName] = dataTable.varDelta
     end
 
@@ -1229,10 +1235,20 @@ function UpdateEncoderDataValue (dataTable)
 end
 
 function ToggleDisplayCounter (tar, ply, alt)
+    if alt then TogglePlaneswalkerAbilities(tar, ply, alt) return end
+
     local dataTable = GetClickdataTable(tar, ply, alt)
     local data = dataTable.encoder.call("APIgetObjectData",{obj=tar,propID=pID})
     dataTable.varDelta = not data.displayCounters
     dataTable.varName = "displayCounters"
+    PropagateValueChange(dataTable)
+end
+
+function TogglePlaneswalkerAbilities (tar, ply, alt)
+    local dataTable = GetClickdataTable(tar, ply, alt)
+    local data = dataTable.encoder.call("APIgetObjectData",{obj=tar,propID=pID})
+    dataTable.varDelta = not data.displayPlaneswalkerAbilities
+    dataTable.varName = "displayPlaneswalkerAbilities"
     PropagateValueChange(dataTable)
 end
 
@@ -1295,6 +1311,42 @@ function receiveTenCounterClick(tar,ply,alt)
     local dataTable = GetClickdataTable(tar, ply, alt)
     dataTable.varDelta = alt and -10 or 10
     dataTable.varName = "genericCount"
+    PropagateValueChange(dataTable)
+end
+
+function GetPlaneswalkerAbilityDelta (dataTable, index)
+    local data = dataTable.encoder.call("APIgetObjectData", {obj = dataTable.target, propID = pID})
+    dataTable.varDelta = data.planesWalkerAbilitySlots["frontFace"][index]["abilityDelta"]
+    dataTable.varDelta = (type(dataTable.varDelta) == "number" and dataTable.varDelta or -1) * (dataTable.alt_click and -1 or 1)
+
+    return dataTable.varDelta
+end
+
+function receivePlaneswalkerClickSlot1 (tar, ply, alt)
+    local dataTable = GetClickdataTable(tar, ply, alt)
+    dataTable.varName = "genericCount"
+    dataTable.varDelta = GetPlaneswalkerAbilityDelta(dataTable, 1)
+    PropagateValueChange(dataTable)
+end
+
+function receivePlaneswalkerClickSlot2 (tar, ply, alt)
+    local dataTable = GetClickdataTable(tar, ply, alt)
+    dataTable.varName = "genericCount"
+    dataTable.varDelta = GetPlaneswalkerAbilityDelta(dataTable, 2)
+    PropagateValueChange(dataTable)
+end
+
+function receivePlaneswalkerClickSlot3 (tar, ply, alt)
+    local dataTable = GetClickdataTable(tar, ply, alt)
+    dataTable.varName = "genericCount"
+    dataTable.varDelta = GetPlaneswalkerAbilityDelta(dataTable, 3)
+    PropagateValueChange(dataTable)
+end
+
+function receivePlaneswalkerClickSlot4 (tar, ply, alt)
+    local dataTable = GetClickdataTable(tar, ply, alt)
+    dataTable.varName = "genericCount"
+    dataTable.varDelta = GetPlaneswalkerAbilityDelta(dataTable, 4)
     PropagateValueChange(dataTable)
 end
 
@@ -1532,6 +1584,7 @@ function parseCardData(object, enc)
                 data.hasLoyalty = true
 
                 data.planesWalkerAbilitySlots = getPlaneswalkerAbilitiesFromCard(description)
+                data.displayPlaneswalkerAbilities = true
             else
                 data.hasLoyalty = false
                 data.hasOtherCounter = hasKeywordOrNamedCounter(object, description)
@@ -1591,14 +1644,13 @@ function getPlaneswalkerAbilitiesFromCard(description)
         local capturedLines = string.splitUsingFind(description, "\n")
 
         for index, value in ipairs(capturedLines) do
-            if capturedLines[index]:find("%/%/") then
-                index = index + 1 -- skip next line
+            if capturedLines[index]:find("%/%/") or capturedLines[index]:find("—") then --this one's ALSO not a minus sign
                 backFaceChecker = backFaceChecker + 1
                 if backFaceChecker == 2 then planeswalkerAbilityIndex = 1 end
                 --reset index when moving to backFace slots
             else
-                if capturedLines[index]:find("^%[b") == nil then --workaround forces this
-                    parsedAbilities[(backFaceChecker < 2 and "frontFace" or "backFace")][planeswalkerAbilityIndex] = capturedLines[index]
+                if capturedLines[index]:find("^%[b") == nil then --ignore loyalty line
+                    parsedAbilities[(backFaceChecker < 4 and "frontFace" or "backFace")][planeswalkerAbilityIndex] = capturedLines[index]
                     planeswalkerAbilityIndex = planeswalkerAbilityIndex + 1
                 end
             end
@@ -1608,20 +1660,38 @@ function getPlaneswalkerAbilitiesFromCard(description)
 
     local planesWalkerAbilitySlots = {frontFace = {}, frontFaceCount = 0, backFace = {}, backFaceCount = 0}
     for key, value in pairs (parsedAbilities) do
+        local pwAbilityCount = 0
         planesWalkerAbilitySlots[(key.."Count")] = 0
         for index, value in ipairs (parsedAbilities[key]) do
-            local tooltipIndex = parsedAbilities[key][index]:find("%:%s")
+            local tooltipIndex = parsedAbilities[key][index]:find("%w%:%s")
             local abilityDelta = nil
             if tooltipIndex ~= nil then
-                abilityDelta = parsedAbilities[key][index]:sub(1, tooltipIndex -1)
+                pwAbilityCount = pwAbilityCount + 1
+                abilityDelta = parsedAbilities[key][index]:sub(1, tooltipIndex)
                 abilityDelta = abilityDelta:find("[xX]+") ~= nil and "X" or tonumber(abilityDelta)
             end
             local abilityText = tooltipIndex ~= nil and parsedAbilities[key][index]:sub(tooltipIndex + 2) or parsedAbilities[key][index]
-
+            broadcastToAll(tostring(abilityDelta).."  "..abilityText.."\n")
             planesWalkerAbilitySlots[key][index] = {abilityDelta = abilityDelta, abilityText = abilityText}
             planesWalkerAbilitySlots[key.."Count"] = planesWalkerAbilitySlots[key.."Count"] + 1
         end
+        --trying to deal with placement edge cases - which all happen when there are only two slots
+        if (planesWalkerAbilitySlots[key.."Count"] == 2) then
+            --there's only one card with only 2 slots and 2 abilities... and it uses unique placement for some reason
+            if pwAbilityCount ~= 2 then
+                planesWalkerAbilitySlots[key.."Count"] = planesWalkerAbilitySlots[key.."Count"] + 1
+                --the other cards with 2 slots format correctly if one of the slots is counted as 2 (making a virtual third slot)
+
+                if planesWalkerAbilitySlots[key][1]["abilityText"]:len() > planesWalkerAbilitySlots[key][2]["abilityText"]:len() then
+                    planesWalkerAbilitySlots[key][3] = {abilityDelta = planesWalkerAbilitySlots[key][2]["abilityDelta"], abilityText = planesWalkerAbilitySlots[key][2]["abilityText"]}
+                    planesWalkerAbilitySlots[key][2] = {abilityDelta = nil, abilityText = "filler created to correct formatting, this should not be appear anywhere"}
+                else
+                    planesWalkerAbilitySlots[key][3] = {abilityDelta = nil, abilityText = "filler created to correct formatting, this should not be appear anywhere"}
+                end
+            end
+        end
     end
+
     return planesWalkerAbilitySlots
 end
 
