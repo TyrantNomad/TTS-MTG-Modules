@@ -256,9 +256,10 @@ function registerModule()
                 displayPowTou = false,
                 displayPlusOne = false,
 
-                cardFaceData = {
-                    {power = 0, toughness = 0, isPlaneswalker = false, pwAbilities = {}, pwCount = 0},
-                    {power = 0, toughness = 0, isPlaneswalker = false, pwAbilities = {}, pwCount = 0} --backface
+                activeFace = 1,
+                cardFaces = {
+                    {basePower = 0, baseToughness = 0, isPlaneswalker = false, pwAbilities = {}, pwCount = 0},
+                    {basePower = 0, baseToughness = 0, isPlaneswalker = false, pwAbilities = {}, pwCount = 0} --backface
                 },
                 --changed hasLoyalty to isPlaneswalker
 
@@ -268,15 +269,13 @@ function registerModule()
                 "none", single-faced card
                 "split", two cards in a single face side by side
                 "flip", two cards in a single face in opposite orientations, sharing a central art
-                "unknown", DFC (!/null) - old importer DFC, button should respawn card
+                "unknown", DFC (!/null) - old importer DFC, button should reimport card
                 "modal", DFC (^/^v) - at least one side is a non-legendary land
-                "eldrazi", DFC(full moon/squid thing) - back side is type eldrazi
+                "weredrazi", DFC(full moon/squid thing) - back side is type eldrazi
                 "discovery", DFC(compass/land) - back side is type legendary land
                 "ascendant", DFC(unlit PW symbol, lit PW symbol) - front side is a creature, back side is planeswalker
                 "werecard", DFC(sun/crescent moon) - any other card that transforms
                 --]]
-
-                --card importer doesn't provide complete double-faced data
 
                 exactCopyOffset = 0,
             
@@ -327,15 +326,15 @@ function createButtons(t)
 
     if enc ~= nil then
         parseCardData(t.object, enc)
-        local faceIndex = 1 -- VERY IMPORTANT NOW
         
         local data = enc.call("APIgetObjectData",{obj=t.object,propID=pID})
         local flip = enc.call("APIgetFlip",{obj=t.object})
         local scaler = {x=1,y=1,z=1}--t.object.getScale()
+        local activeFace = data.activeFace
 
         local amuzetCardImporter = GetAmuzetsCardImporter()
 
-        local loyaltyOffset = (data.displayCounters and data.cardFaceData[faceIndex].isPlaneswalker) and -0.3 or 0
+        local loyaltyOffset = (data.displayCounters and data.cardFaces[activeFace].isPlaneswalker) and -0.3 or 0
         local colorLightGrey = {133/255,133/255,133/255}
         local colorDarkGrey = {55/255,55/255,55/255}
         local colorCardBorderBlack = {19/255,16/255,12/255}
@@ -466,8 +465,8 @@ function createButtons(t)
 
                 label = "①",
                 font_size = buttonTextSize + 8,
-                font_color = data.displayCounters and ((data.cardFaceData[faceIndex].isPlaneswalker and data.displayPlaneswalkerAbilities) and buttonTextColorOnExtra or buttonTextColorOn) or buttonTextColorOff,
-                tooltip = buttonTooltipToggleDisplayCounters..((data.displayCounters and data.cardFaceData[faceIndex].isPlaneswalker) and buttonTooltipToggleDisplayCountersPlaneswalkerAbilities or ""),
+                font_color = data.displayCounters and ((data.cardFaces[activeFace].isPlaneswalker and data.displayPlaneswalkerAbilities) and buttonTextColorOnExtra or buttonTextColorOn) or buttonTextColorOff,
+                tooltip = buttonTooltipToggleDisplayCounters..((data.displayCounters and data.cardFaces[activeFace].isPlaneswalker) and buttonTooltipToggleDisplayCountersPlaneswalkerAbilities or ""),
 
                 height = buttonDimensions,
                 width = buttonDimensions,
@@ -676,7 +675,7 @@ function createButtons(t)
 
 
             local horizontalOffset = -0.81
-            local flipHorizontal = data.cardFaceData[faceIndex].isPlaneswalker and -1 or 1
+            local flipHorizontal = data.cardFaces[activeFace].isPlaneswalker and -1 or 1
             local verticalOffset = 1.275
             --tile size is about 500 for 1 unit
 
@@ -748,7 +747,7 @@ function createButtons(t)
             })
 
             --planeswalker abilities
-            if data.cardFaceData[faceIndex].isPlaneswalker and data.displayPlaneswalkerAbilities then
+            if data.cardFaces[activeFace].isPlaneswalker and data.displayPlaneswalkerAbilities then
                 local pwAbilityHorizontalOffset = 1.055
 
                 local pwTinyTextOffset = 0.006
@@ -757,22 +756,22 @@ function createButtons(t)
                 local pwNeutralAbilityFontSize = pwAbilityFontSize * 1.7
                 --■☗
                 --arrow up = minus, neutral = minus, arrow down = plus
-                --data.cardFaceData[index]["pwAbilities"]
-                if data.cardFaceData[faceIndex]["pwAbilities"] ~= nil and data.cardFaceData[faceIndex]["pwCount"] > 0 then
-                    for index, value in ipairs(data.cardFaceData[faceIndex]["pwAbilities"]) do
-                        if data.cardFaceData[1]["pwAbilities"][index]["abilityDelta"] ~= nil then
-                            local pwAbilityDelta = data.cardFaceData[faceIndex]["pwAbilities"][index]["abilityDelta"]
+                --data.cardFaces[index]["pwAbilities"]
+                if data.cardFaces[activeFace]["pwAbilities"] ~= nil and data.cardFaces[activeFace]["pwCount"] > 0 then
+                    for index, value in ipairs(data.cardFaces[activeFace]["pwAbilities"]) do
+                        if data.cardFaces[1]["pwAbilities"][index]["abilityDelta"] ~= nil then
+                            local pwAbilityDelta = data.cardFaces[activeFace]["pwAbilities"][index]["abilityDelta"]
                             local pwAbilityCost = 
                                 type(pwAbilityDelta) == "string" and "-X " or
                                 (pwAbilityDelta > 0 and "+" or "")..pwAbilityDelta..(pwAbilityDelta ~= 0 and " " or "")
                             local pwAbilityTooltip =
                                 hexTooltipHighlight..pwAbilityCost.."Loyalty:[-]\n".. 
-                                hexTooltipMidlight..data.cardFaceData[faceIndex]["pwAbilities"][index]["abilityText"]
+                                hexTooltipMidlight..data.cardFaces[activeFace]["pwAbilities"][index]["abilityText"]
     
                             local isNeutralAbility = pwAbilityDelta == 0
                             pwAbilityDelta = type(pwAbilityDelta) ~= "number" and -1 or pwAbilityDelta
     
-                            local pwAbilityVerticalOffset = GetPlaneswalkerAbilityVerticalOffset (index, data.cardFaceData[faceIndex]["pwCount"])
+                            local pwAbilityVerticalOffset = GetPlaneswalkerAbilityVerticalOffset (index, data.cardFaces[activeFace]["pwCount"])
     
                             t.object.createButton({
                                 label = isNeutralAbility and "■" or "☗",
@@ -860,13 +859,18 @@ function createButtons(t)
             --size for single digit 270?
 
             local verticalSize = 130
-            --local horizontalSize = baseWidth + (string.len(data.power..data.toughness) * widthPerDigit)
             horizontalSize = 320
             
             local rimSize = 30
 
             local horizontalOffset = 0.69
             local verticalOffset = 1.275  + loyaltyOffset
+
+            local powerText = data.cardFaces[data.activeFace]["basePower"]
+            powerText = type(powerText) == "number" and (powerText + data.power) or (data.power == 0 and powerText or data.power)
+
+            local toughnessText = data.cardFaces[data.activeFace]["baseToughness"]
+            toughnessText = type(toughnessText) == "number" and (toughnessText + data.toughness) or (data.toughness == 0 and toughnessText or data.toughness)
             --tile size is about 500 for 1 unit
 
             --powtou increase both button
@@ -954,7 +958,7 @@ function createButtons(t)
 
             --powtou pow
             t.object.createButton({
-                label=data.power.." ",
+                label = powerText.." ",
                 tooltip = buttonTooltipPowerSingleClick,
 
                 click_function='receivePowerClick',
@@ -979,7 +983,7 @@ function createButtons(t)
 
             --powtou tou
             t.object.createButton({
-                label=" "..data.toughness,
+                label = " "..toughnessText,
                 tooltip = buttonTooltipToughnessSingleClick,
 
                 click_function='receiveToughnessClick',
@@ -1339,7 +1343,7 @@ end
 
 function GetPlaneswalkerAbilityDelta (dataTable, index)
     local data = dataTable.encoder.call("APIgetObjectData", {obj = dataTable.target, propID = pID})
-    dataTable.varDelta = data.planesWalkerAbilitySlots["frontFace"][index]["abilityDelta"]
+    dataTable.varDelta = data.cardData[data.activeFace]["pwAbilities"][index]["abilityDelta"]
     dataTable.varDelta = (type(dataTable.varDelta) == "number" and dataTable.varDelta or -1) * (dataTable.alt_click and -1 or 1)
 
     return dataTable.varDelta
@@ -1585,8 +1589,6 @@ end
 
 --Parse Functions
 function parseCardData(object, enc)
-    --new parser
-    --local cardStruct = {nameLine = "", typeLine = "", textLines = {}, statLine = ""}
     local cardData = {{nameLine = "", typeLine = "", textLines = {}, statLine = ""}, doubleFaced = false} -- does this work?
 
     local data = enc.call("APIgetObjectData",{obj=object,propID=pID})
@@ -1598,13 +1600,14 @@ function parseCardData(object, enc)
     end
     
     if data.hasParsed == false then
-        --data.hasParsed = true
+        data.hasParsed = true
 
         local nameField = object.getName()
         local descriptionField = object.getDescription()
 
         local oldImportDFC = descriptionField:find("%/%/") ~= nil -- can't type-check DFC properly in old imports
-        local generalDFC = descriptionField:find("—") ~=  nil -- need to check for type lines for new import DFCs
+        local generalDFC = descriptionField:find("%]\n") ~=  nil -- new DFCs have a linebreak after the first set of stats
+        -- new DFCs have the // in the name field instead (turns out this is only for flip/split), might get fixed
 
         if oldImportDFC or generalDFC then --correcting line breaks near stats
             --gotta fix the lack of line break in the old imports
@@ -1629,22 +1632,23 @@ function parseCardData(object, enc)
             cardData["doubleFaced"] = true
 
             local faceIndex = 1
-            local setName = true
+            local faceLine = 0
             --double-face
             for index, value in ipairs(descriptionLines) do
+                faceLine = faceLine + 1
                 --if descriptionLines[index]:find("CMC") then -- CMC was removed from name line in new importer
-                if setName then
+                if faceLine == 1 then
                     --but the name is always the first line in each face so this should do it
                     cardData[faceIndex]["nameLine"] = value
-                    setName = false
-                elseif descriptionLines[index]:find("—") then
+                elseif faceLine == 2 then
+                    --split cards don't have the hiphenation in the typeline, so we use line count here as well
                     cardData[faceIndex]["typeLine"] = value
                 elseif descriptionLines[index]:find("^%[") then
                     cardData[faceIndex]["statLine"] = value
 
                     if descriptionLines[index + 1] ~= nil then
                         faceIndex = faceIndex + 1
-                        setName = true
+                        faceLine = 0
                         local cardStruct = {nameLine = "", typeLine = "", textLines = {}, statLine = ""}
                         table.insert(cardData, cardStruct)
                     end
@@ -1669,7 +1673,7 @@ function parseCardData(object, enc)
         for index, value in ipairs (cardData) do
             --planeswalker check
             if value["typeLine"]:find("laneswalker") then -- who knows if that P's gonna be capitalized
-                data.cardFaceData[index]["isPlaneswalker"] = true
+                data.cardFaces[index]["isPlaneswalker"] = true
                 local loyaltyValue = value["statLine"]:match("b%](%d+)%[")
                 if loyaltyValue ~= nil then data.genericCount = tonumber(loyaltyValue) end
                 local pwAbilityCount = 0 --used to count amount of PW abilities vs amount of slots
@@ -1686,161 +1690,80 @@ function parseCardData(object, enc)
                     end
 
                     local abilityText = tooltipIndex ~= nil and innerValue:sub(tooltipIndex + 2) or innerValue
-                    data.cardFaceData[index]["pwAbilities"][innerIndex] = {abilityDelta = abilityDelta, abilityText = abilityText}
-                    data.cardFaceData[index]["pwCount"] = data.cardFaceData[index]["pwCount"] + 1
-                    
-                    broadcastToAll(abilityDelta.."  "..abilityText.."  "..data.cardFaceData[index]["pwCount"])
+                    data.cardFaces[index]["pwAbilities"][innerIndex] = {abilityDelta = abilityDelta, abilityText = abilityText}
+                    data.cardFaces[index]["pwCount"] = data.cardFaces[index]["pwCount"] + 1
                 end
-                
+
                 --trying to deal with placement edge cases - which all happen when there are only two slots
-                if (data.cardFaceData[index]["pwCount"] == 2) then
+                if (data.cardFaces[index]["pwCount"] == 2) then
                     --there's only one card with only 2 slots and 2 abilities... and it uses unique placement for some reason
                     if pwAbilityCount ~= 2 then
-                        data.cardFaceData[index]["pwCount"] = data.cardFaceData[index]["pwCount"] + 1
+                        data.cardFaces[index]["pwCount"] = data.cardFaces[index]["pwCount"] + 1
                         --the other cards with 2 slots format correctly if one of the slots is counted as 2 (making a virtual third slot)
-                        if data.cardFaceData[index]["pwAbilities"][1]["abilityText"]:len() > data.cardFaceData[index]["pwAbilities"][2]["abilityText"]:len() then
-                            data.cardFaceData[index]["pwAbilities"][3] = {abilityDelta = data.cardFaceData[index]["pwAbilities"][2]["abilityDelta"], abilityText = data.cardFaceData[index]["pwAbilities"][2]["abilityText"]}
-                            data.cardFaceData[index]["pwAbilities"][2] = {abilityDelta = nil, abilityText = "filler created to correct formatting, this should not be appear anywhere"}
+                        if data.cardFaces[index]["pwAbilities"][1]["abilityText"]:len() > data.cardFaces[index]["pwAbilities"][2]["abilityText"]:len() then
+                            data.cardFaces[index]["pwAbilities"][3] = {abilityDelta = data.cardFaces[index]["pwAbilities"][2]["abilityDelta"], abilityText = data.cardFaces[index]["pwAbilities"][2]["abilityText"]}
+                            data.cardFaces[index]["pwAbilities"][2] = {abilityDelta = nil, abilityText = "filler created to correct formatting, this should not be appear anywhere"}
                         else
-                            data.cardFaceData[index]["pwAbilities"][3] = {abilityDelta = nil, abilityText = "filler created to correct formatting, this should not be appear anywhere"}
+                            data.cardFaces[index]["pwAbilities"][3] = {abilityDelta = nil, abilityText = "filler created to correct formatting, this should not be appear anywhere"}
+                        end
+                    end
+                end
+            else --power/toughness
+                data.cardFaces[index]["basePower"] = cardData[index]["statLine"]:match("([%d%*xX]+)/")
+                data.cardFaces[index]["baseToughness"] = cardData[index]["statLine"]:match("/([%d%*xX]+)")
+            end
+        end
+
+        if true then --plus one section, we only care about the front face
+            if autoActivatePlusOne and cardData[1]["typeLine"]:find("reature") then
+                local selfReferralString = {"it", cardData[1]["nameLine"]:match("^%w+")}
+
+                for index, nameString in ipairs (selfReferralString) do
+                    for innerIndex, textLine in ipairs (cardData[1]["textLines"]) do
+                        if textLine:find("[%+%-]1/[%+%-]1 counters? on "..nameString) then
+                            data.displayPlusOne = autoActivatePlusOne
+                            break --only breaks out of one loop
                         end
                     end
                 end
             end
         end
 
-        data.displayPlaneswalkerAbilities = data.cardFaceData[1]["pwCount"] > 0
-        data.displayCounters = autoActivateCounter and (data.cardFaceData[1].isPlaneswalker or data.hasOtherCounter)
-
-        enc.call("APIsetObjectData",{obj=object,propID=pID,data=data})
-    end
-    --new parser end
-    if data == nil then
-        local dataTable = {obj = object}
-        data = autoActivate(dataTable)
-        return
-    end
-    
-    if data.hasParsed == false then
-        data.hasParsed = true
-
-        local description = object.getDescription()
-        description = description:gsub("−","-") --no, I mean the REAL minus sign
-
-        --[[local loyaltyValue = getLoyaltyFromCard(description)
-
-        if loyaltyValue ~= nil then
-            data.genericCount = tonumber(loyaltyValue)
-            data.isPlaneswalker = true
-
-            data.planesWalkerAbilitySlots = getPlaneswalkerAbilitiesFromCard(description)
-            data.displayPlaneswalkerAbilities = true
-        else
-            data.isPlaneswalker = false
-            data.hasOtherCounter = hasKeywordOrNamedCounter(object, description)
-        end --]]
-        --data.displayCounters = true --autoActivateCounter and (data.isPlaneswalker or data.hasOtherCounter)
-
-        local power = getPowerFromCard(description)
-        local toughness = getToughnessFromCard(description)
-
-        if power ~= nil and toughness ~= nil then
-            data.power = tonumber(power)
-            data.toughness = tonumber(toughness)
-
-            data.displayPowTou = autoActivatePowTou
-        else
-            data.displayPowTou = false
-        end
-        
-        if true then --just using this to make the plusone section collapsible
-            local typeLine = string.match(object.getName(),"\n.*")
-            if typeLine ~= nil and string.find(typeLine, "Creature") == nil then
-                data.displayPlusOne = false
+        if oldImportDFC then 
+            data.doubleFaceType = "oldImport"
+        elseif generalDFC then
+            frontFaceSplitCheck = cardData[1]["typeLine"]:find("nstant") and true or (cardData[1]["typeLine"]:find("orcery") and true)
+            backFaceSplitCheck = cardData[2]["typeLine"]:find("nstant") and true or (cardData[2]["typeLine"]:find("orcery") and true)
+            
+            if frontFaceSplitCheck and backFaceSplitCheck then
+                data.doubleFaceType = "split"
             else
-                local selfReferralString = {"it", object.getName():gsub('\n.*','')}
-
-                local parsedValue
-                for index, nameString in ipairs (selfReferralString) do
-                    parsedValue = string.match(description, "[%+%-]1/[%+%-]1 counters? on "..nameString)
-                    if parsedValue ~= nil then
-                        data.displayPlusOne = autoActivatePlusOne
-                        break
-                    end
-                end
-            end
-        end
-
-        enc.call("APIsetObjectData",{obj=object,propID=pID,data=data})
-    end
-end
-
-function getLoyaltyFromCard(description)
-    local parsedValue = string.match(description,"]%d+%[")
-    local loyaltyValue
-    if parsedValue ~= nil then
-        loyaltyValue = string.match(parsedValue,"%d+")
-    end
-    return loyaltyValue
-end
-
-function getPlaneswalkerAbilitiesFromCard(description)
-    local planeswalkerAbilityIndex = 1
-    local parsedAbilities = {frontFace = {}, backFace = {}}
-    local backFaceChecker = 0
-
-    while true do
-        local capturedLines = string.splitUsingFind(description, "\n")
-
-        for index, value in ipairs(capturedLines) do
-            if capturedLines[index]:find("%/%/") or capturedLines[index]:find("—") then --this one's ALSO not a minus sign
-                backFaceChecker = backFaceChecker + 1
-                if backFaceChecker == 2 then planeswalkerAbilityIndex = 1 end
-                --reset index when moving to backFace slots
-            else
-                if capturedLines[index]:find("^%[b") == nil then --ignore loyalty line
-                    parsedAbilities[(backFaceChecker < 4 and "frontFace" or "backFace")][planeswalkerAbilityIndex] = capturedLines[index]
-                    planeswalkerAbilityIndex = planeswalkerAbilityIndex + 1
-                end
-            end
-        end
-        break
-    end
-
-    local planesWalkerAbilitySlots = {frontFace = {}, frontFaceCount = 0, backFace = {}, backFaceCount = 0}
-    for key, value in pairs (parsedAbilities) do
-        local pwAbilityCount = 0
-        planesWalkerAbilitySlots[(key.."Count")] = 0
-        for index, value in ipairs (parsedAbilities[key]) do
-            local tooltipIndex = parsedAbilities[key][index]:find("%w%:%s")
-            local abilityDelta = nil
-            if tooltipIndex ~= nil then
-                pwAbilityCount = pwAbilityCount + 1
-                abilityDelta = parsedAbilities[key][index]:sub(1, tooltipIndex)
-                abilityDelta = abilityDelta:find("[xX]+") ~= nil and "X" or tonumber(abilityDelta)
-            end
-            local abilityText = tooltipIndex ~= nil and parsedAbilities[key][index]:sub(tooltipIndex + 2) or parsedAbilities[key][index]
-            planesWalkerAbilitySlots[key][index] = {abilityDelta = abilityDelta, abilityText = abilityText}
-            planesWalkerAbilitySlots[key.."Count"] = planesWalkerAbilitySlots[key.."Count"] + 1
-        end
-        --trying to deal with placement edge cases - which all happen when there are only two slots
-        if (planesWalkerAbilitySlots[key.."Count"] == 2) then
-            --there's only one card with only 2 slots and 2 abilities... and it uses unique placement for some reason
-            if pwAbilityCount ~= 2 then
-                planesWalkerAbilitySlots[key.."Count"] = planesWalkerAbilitySlots[key.."Count"] + 1
-                --the other cards with 2 slots format correctly if one of the slots is counted as 2 (making a virtual third slot)
-
-                if planesWalkerAbilitySlots[key][1]["abilityText"]:len() > planesWalkerAbilitySlots[key][2]["abilityText"]:len() then
-                    planesWalkerAbilitySlots[key][3] = {abilityDelta = planesWalkerAbilitySlots[key][2]["abilityDelta"], abilityText = planesWalkerAbilitySlots[key][2]["abilityText"]}
-                    planesWalkerAbilitySlots[key][2] = {abilityDelta = nil, abilityText = "filler created to correct formatting, this should not be appear anywhere"}
+                flipCardCheck = descriptionField:find("lip it") or descriptionField:find("lip "..cardData[1]["nameLine"]:match("^%w+"))
+                if flipCardCheck ~= nil then
+                    data.doubleFaceType = "flip"
+                elseif descriptionField:find("ransform") == nil then
+                    --alternatively: one side is a non-legendary land
+                    data.doubleFaceType = "modal"
+                elseif cardData[2]["typeLine"]:find("ldrazi") ~= nil then
+                    data.doubleFaceType = "weredrazi"
+                elseif cardData[2]["typeLine"]:find("[lL]and") ~= nil then
+                    data.doubleFaceType = "discovery"
+                elseif (cardData[1]["typeLine"]:find("reature")) and (cardData[2]["typeLine"]:find("laneswalker")) then
+                    data.doubleFaceType = "ascendant"
                 else
-                    planesWalkerAbilitySlots[key][3] = {abilityDelta = nil, abilityText = "filler created to correct formatting, this should not be appear anywhere"}
+                    data.doubleFaceType = "werecard"
                 end
             end
         end
-    end
+        broadcastToAll(tostring(data.doubleFaceType))
 
-    return planesWalkerAbilitySlots
+        data.displayPowTou = autoActivatePowTou and (cardData[1]["typeLine"]:find("reature") ~= nil)
+        data.hasOtherCounter = hasKeywordOrNamedCounter(cardData[1]["nameLine"], descriptionField) --maybe refactor this to not use the whole field
+        data.displayPlaneswalkerAbilities = data.cardFaces[1]["pwCount"] > 0
+        data.displayCounters = autoActivateCounter and (data.cardFaces[1].isPlaneswalker or data.hasOtherCounter)
+
+        enc.call("APIsetObjectData",{obj=object,propID=pID,data=data})
+    end
 end
 
 function string.splitUsingFind(text, separator)
@@ -1859,7 +1782,7 @@ function string.splitUsingFind(text, separator)
     return splitTable
 end
 
-function hasKeywordOrNamedCounter(object, description)
+function hasKeywordOrNamedCounter(nameLine, description)
     local keywordCounters = {"Cumulative upkeep", "Suspend", "Vanishing", "Fading", "after III"}
 
     for index, keywordString in ipairs(keywordCounters) do
@@ -1871,7 +1794,7 @@ function hasKeywordOrNamedCounter(object, description)
     namedCounterCheckParse = string.match(description, "[pP]ut %a+ %a+ counters? on %a+")
     if namedCounterCheckParse == nil then namedCounterCheckParse = string.match(description, "with %a+ %a+ counters? on %a+") end
 
-    local cardNameFirstWord = string.match(object.getName(), "%a+")
+    local cardNameFirstWord = string.match(nameLine, "%a+")
 
     if namedCounterCheckParse ~= nil and (string.find(namedCounterCheckParse, " it") ~= nil or (cardNameFirstWord ~= nil and string.find(namedCounterCheckParse, " "..cardNameFirstWord)) ) ~= nil then
         --this checks if it puts counters on itself, the space is to avoid false hits for other words
@@ -1885,24 +1808,6 @@ function hasKeywordOrNamedCounter(object, description)
     end
     
     return false
-end
-
-function getPowerFromCard(description)
-    local parsedValue = string.match(description,"]([%d%*xX]+)/")
-    local powerValue
-    if parsedValue ~= nil then
-        powerValue = parsedValue
-    end
-    return powerValue
-end
-
-function getToughnessFromCard(description)
-    local parsedValue = string.match(description,"/([%d%*xX]+)%[")
-    local toughnessValue
-    if parsedValue ~= nil then
-        toughnessValue = parsedValue
-    end
-    return toughnessValue
 end
 
 --Auto Functions
