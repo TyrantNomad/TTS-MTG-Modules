@@ -248,7 +248,7 @@ function registerModule()
 
                 power=0, toughness=0,
                 plusOneCounters=0,
-                genericCount = 0, hasLoyalty = false, hasOtherCounter = false,
+                genericCount = 0, hasOtherCounter = false,
                 planesWalkerAbilitySlots = {frontFace = {}, frontFaceCount = 0, backFace = {}, backFaceCount = 0},
 
                 displayCounters = false,
@@ -256,7 +256,26 @@ function registerModule()
                 displayPowTou = false,
                 displayPlusOne = false,
 
-                --doubleFaceType = "none",
+                cardFaceData = {
+                    {power = 0, toughness = 0, isPlaneswalker = false, pwAbilities = {}, pwCount = 0},
+                    {power = 0, toughness = 0, isPlaneswalker = false, pwAbilities = {}, pwCount = 0} --backface
+                },
+                --changed hasLoyalty to isPlaneswalker
+
+                doubleFaceType = "none",
+                --[[
+                types:
+                "none", single-faced card
+                "split", two cards in a single face side by side
+                "flip", two cards in a single face in opposite orientations, sharing a central art
+                "unknown", DFC (!/null) - old importer DFC, button should respawn card
+                "modal", DFC (^/^v) - at least one side is a non-legendary land
+                "eldrazi", DFC(full moon/squid thing) - back side is type eldrazi
+                "discovery", DFC(compass/land) - back side is type legendary land
+                "ascendant", DFC(unlit PW symbol, lit PW symbol) - front side is a creature, back side is planeswalker
+                "werecard", DFC(sun/crescent moon) - any other card that transforms
+                --]]
+
                 --card importer doesn't provide complete double-faced data
 
                 exactCopyOffset = 0,
@@ -307,7 +326,8 @@ function createButtons(t)
     enc = Global.getVar('Encoder')
 
     if enc ~= nil then
-        parseCardData(t.object)
+        parseCardData(t.object, enc)
+        local faceIndex = 1 -- VERY IMPORTANT NOW
         
         local data = enc.call("APIgetObjectData",{obj=t.object,propID=pID})
         local flip = enc.call("APIgetFlip",{obj=t.object})
@@ -315,7 +335,7 @@ function createButtons(t)
 
         local amuzetCardImporter = GetAmuzetsCardImporter()
 
-        local loyaltyOffset = (data.displayCounters and data.hasLoyalty) and -0.3 or 0
+        local loyaltyOffset = (data.displayCounters and data.cardFaceData[faceIndex].isPlaneswalker) and -0.3 or 0
         local colorLightGrey = {133/255,133/255,133/255}
         local colorDarkGrey = {55/255,55/255,55/255}
         local colorCardBorderBlack = {19/255,16/255,12/255}
@@ -333,7 +353,6 @@ function createButtons(t)
         local cardController = data.controllerColor == nil and "Grey" or data.controllerColor
         local controlColor = Color.fromString(cardController)
         local controlColorHex = controlColor:toHex(false)
-        
         --tooltips
         local multiSelectTooltip = hexTooltipHighlight.."AFFECTS ALL SELECTED CARDS[-]\n\n"
         local singleSelectTooltip = hexTooltipBluelight.."AFFECTS CLICKED CARD ONLY[-]\n\n"
@@ -447,8 +466,8 @@ function createButtons(t)
 
                 label = "①",
                 font_size = buttonTextSize + 8,
-                font_color = data.displayCounters and ((data.hasLoyalty and data.displayPlaneswalkerAbilities) and buttonTextColorOnExtra or buttonTextColorOn) or buttonTextColorOff,
-                tooltip = buttonTooltipToggleDisplayCounters..((data.displayCounters and data.hasLoyalty) and buttonTooltipToggleDisplayCountersPlaneswalkerAbilities or ""),
+                font_color = data.displayCounters and ((data.cardFaceData[faceIndex].isPlaneswalker and data.displayPlaneswalkerAbilities) and buttonTextColorOnExtra or buttonTextColorOn) or buttonTextColorOff,
+                tooltip = buttonTooltipToggleDisplayCounters..((data.displayCounters and data.cardFaceData[faceIndex].isPlaneswalker) and buttonTooltipToggleDisplayCountersPlaneswalkerAbilities or ""),
 
                 height = buttonDimensions,
                 width = buttonDimensions,
@@ -641,6 +660,12 @@ function createButtons(t)
                 })
             end
             
+            --double-faced card buttons
+            if true then
+                -- ● ▴▾ ☾ ☀✹❂  ❍ (full moon) ◬ (land?) ❖☸⁜※ (windmill?) ⇪ (pre-planeswalker?) ◉◎❢❣∈☫❤♡♥♆♨♛ (pieces?)
+                -- eldrazi symbol ❤♨
+
+            end
         end
         
         --simplecounter buttons & planeswalker abilities
@@ -651,7 +676,7 @@ function createButtons(t)
 
 
             local horizontalOffset = -0.81
-            local flipHorizontal = data.hasLoyalty and -1 or 1
+            local flipHorizontal = data.cardFaceData[faceIndex].isPlaneswalker and -1 or 1
             local verticalOffset = 1.275
             --tile size is about 500 for 1 unit
 
@@ -723,7 +748,7 @@ function createButtons(t)
             })
 
             --planeswalker abilities
-            if data.hasLoyalty and data.displayPlaneswalkerAbilities then
+            if data.cardFaceData[faceIndex].isPlaneswalker and data.displayPlaneswalkerAbilities then
                 local pwAbilityHorizontalOffset = 1.055
 
                 local pwTinyTextOffset = 0.006
@@ -732,23 +757,22 @@ function createButtons(t)
                 local pwNeutralAbilityFontSize = pwAbilityFontSize * 1.7
                 --■☗
                 --arrow up = minus, neutral = minus, arrow down = plus
-    
-                if data.planesWalkerAbilitySlots ~= nil and data.planesWalkerAbilitySlots["frontFaceCount"] > 0 then
-                    for index, value in ipairs(data.planesWalkerAbilitySlots["frontFace"]) do
-                        if data.planesWalkerAbilitySlots["frontFace"][index]["abilityDelta"] ~= nil then
-                            local pwAbilityDelta = data.planesWalkerAbilitySlots["frontFace"][index]["abilityDelta"]
+                --data.cardFaceData[index]["pwAbilities"]
+                if data.cardFaceData[faceIndex]["pwAbilities"] ~= nil and data.cardFaceData[faceIndex]["pwCount"] > 0 then
+                    for index, value in ipairs(data.cardFaceData[faceIndex]["pwAbilities"]) do
+                        if data.cardFaceData[1]["pwAbilities"][index]["abilityDelta"] ~= nil then
+                            local pwAbilityDelta = data.cardFaceData[faceIndex]["pwAbilities"][index]["abilityDelta"]
                             local pwAbilityCost = 
                                 type(pwAbilityDelta) == "string" and "-X " or
                                 (pwAbilityDelta > 0 and "+" or "")..pwAbilityDelta..(pwAbilityDelta ~= 0 and " " or "")
-                            --broadcastToAll(pwAbilityCost)
                             local pwAbilityTooltip =
                                 hexTooltipHighlight..pwAbilityCost.."Loyalty:[-]\n".. 
-                                hexTooltipMidlight..data.planesWalkerAbilitySlots["frontFace"][index]["abilityText"]
+                                hexTooltipMidlight..data.cardFaceData[faceIndex]["pwAbilities"][index]["abilityText"]
     
                             local isNeutralAbility = pwAbilityDelta == 0
                             pwAbilityDelta = type(pwAbilityDelta) ~= "number" and -1 or pwAbilityDelta
     
-                            local pwAbilityVerticalOffset = GetPlaneswalkerAbilityVerticalOffset (index, data.planesWalkerAbilitySlots["frontFaceCount"])
+                            local pwAbilityVerticalOffset = GetPlaneswalkerAbilityVerticalOffset (index, data.cardFaceData[faceIndex]["pwCount"])
     
                             t.object.createButton({
                                 label = isNeutralAbility and "■" or "☗",
@@ -1156,8 +1180,7 @@ function GetPlaneswalkerAbilityVerticalOffset (abilityIndex, abilityCount)
         0.62,
         1.02
     }
-    
-    --broadcastToAll(abilityIndex.."  "..abilityCount)
+
     if abilityIndex >= 1 and abilityIndex <= 4 then
         if (abilityCount >= 4) then
             if (abilityIndex > 4) then broadcastToAll("Invalid planeswalker ability index received: "..abilityIndex) end
@@ -1169,8 +1192,8 @@ function GetPlaneswalkerAbilityVerticalOffset (abilityIndex, abilityCount)
             --need to check special cases for this one
             return twoSlotOffsets[math.min(abilityIndex, 2)]
         else
-            --no planeswalker has only 1 slot
-            return fourSlotOffsets[math.min(abilityIndex + 1, 4)]
+            --no planeswalker has only 1 slot, but if they did it would probably use the centered one
+            return fourSlotOffsets[math.min(abilityIndex + 2, 4)]
         end
     else
         broadcastToAll("Invalid planeswalker ability index received: "..abilityIndex)
@@ -1562,67 +1585,193 @@ end
 
 --Parse Functions
 function parseCardData(object, enc)
-    if enc ~= nil then
-        local data = enc.call("APIgetObjectData",{obj=object,propID=pID})
+    --new parser
+    --local cardStruct = {nameLine = "", typeLine = "", textLines = {}, statLine = ""}
+    local cardData = {{nameLine = "", typeLine = "", textLines = {}, statLine = ""}, doubleFaced = false} -- does this work?
 
-        if data == nil then
-            local dataTable = {obj = object}
-            data = autoActivate(dataTable)
-            return
+    local data = enc.call("APIgetObjectData",{obj=object,propID=pID})
+
+    if data == nil then
+        local dataTable = {obj = object}
+        data = autoActivate(dataTable)
+        return
+    end
+    
+    if data.hasParsed == false then
+        --data.hasParsed = true
+
+        local nameField = object.getName()
+        local descriptionField = object.getDescription()
+
+        local oldImportDFC = descriptionField:find("%/%/") ~= nil -- can't type-check DFC properly in old imports
+        local generalDFC = descriptionField:find("—") ~=  nil -- need to check for type lines for new import DFCs
+
+        if oldImportDFC or generalDFC then --correcting line breaks near stats
+            --gotta fix the lack of line break in the old imports
+            if oldImportDFC then
+                local lineBreakIndex = descriptionField:find("%/b") + 2
+                descriptionField = descriptionField:sub(1, lineBreakIndex).."\n"..descriptionField:sub(lineBreakIndex + 1, -1)
+            end
+
+            --...and in new imports as well
+            while true do 
+                local lineBreakIndex = descriptionField:find("[^\n]%[b")
+                if lineBreakIndex then
+                    descriptionField = descriptionField:sub(1, lineBreakIndex).."\n"..descriptionField:sub(lineBreakIndex + 1, -1)
+                else break end
+            end
         end
         
-        if data.hasParsed == false then
-            data.hasParsed = true
+        descriptionField = descriptionField:gsub("−","-") --no, I mean the REAL minus sign
+        local descriptionLines = string.splitUsingFind(descriptionField, "\n")
 
-            local description = object.getDescription()
-            description = description:gsub("−","-") --no, I mean the REAL minus sign
+        if oldImportDFC or generalDFC then --setting data into the correct fields
+            cardData["doubleFaced"] = true
 
-            local loyaltyValue = getLoyaltyFromCard(description)
+            local faceIndex = 1
+            local setName = true
+            --double-face
+            for index, value in ipairs(descriptionLines) do
+                --if descriptionLines[index]:find("CMC") then -- CMC was removed from name line in new importer
+                if setName then
+                    --but the name is always the first line in each face so this should do it
+                    cardData[faceIndex]["nameLine"] = value
+                    setName = false
+                elseif descriptionLines[index]:find("—") then
+                    cardData[faceIndex]["typeLine"] = value
+                elseif descriptionLines[index]:find("^%[") then
+                    cardData[faceIndex]["statLine"] = value
 
-            if loyaltyValue ~= nil then
-                data.genericCount = tonumber(loyaltyValue)
-                data.hasLoyalty = true
-
-                data.planesWalkerAbilitySlots = getPlaneswalkerAbilitiesFromCard(description)
-                data.displayPlaneswalkerAbilities = true
-            else
-                data.hasLoyalty = false
-                data.hasOtherCounter = hasKeywordOrNamedCounter(object, description)
-            end
-            data.displayCounters = autoActivateCounter and (data.hasLoyalty or data.hasOtherCounter)
-
-            local power = getPowerFromCard(description)
-            local toughness = getToughnessFromCard(description)
-
-            if power ~= nil and toughness ~= nil then
-                data.power = tonumber(power)
-                data.toughness = tonumber(toughness)
-
-                data.displayPowTou = autoActivatePowTou
-            else
-                data.displayPowTou = false
-            end
-            
-            if true then --just using this to make the plusone section collapsible
-                local typeLine = string.match(object.getName(),"\n.*")
-                if typeLine ~= nil and string.find(typeLine, "Creature") == nil then
-                    data.displayPlusOne = false
+                    if descriptionLines[index + 1] ~= nil then
+                        faceIndex = faceIndex + 1
+                        setName = true
+                        local cardStruct = {nameLine = "", typeLine = "", textLines = {}, statLine = ""}
+                        table.insert(cardData, cardStruct)
+                    end
                 else
-                    local selfReferralString = {"it", object.getName():gsub('\n.*','')}
+                    table.insert(cardData[faceIndex]["textLines"], value)
+                end
+            end
+        else
+            --single-face
+            cardData[1]["nameLine"] = nameField:match("^(.+)\n")
+            cardData[1]["typeLine"] = nameField:match("\n(.+)$")
 
-                    local parsedValue
-                    for index, nameString in ipairs (selfReferralString) do
-                        parsedValue = string.match(description, "[%+%-]1/[%+%-]1 counters? on "..nameString)
-                        if parsedValue ~= nil then
-                            data.displayPlusOne = autoActivatePlusOne
-                            break
+            for index, value in ipairs (descriptionLines) do
+                if value:find("%[") then
+                    cardData[1]["statLine"] = value
+                    descriptionLines[index] = nil
+                    cardData[1]["textLines"] = descriptionLines
+                end
+            end
+        end
+
+        for index, value in ipairs (cardData) do
+            --planeswalker check
+            if value["typeLine"]:find("laneswalker") then -- who knows if that P's gonna be capitalized
+                data.cardFaceData[index]["isPlaneswalker"] = true
+                local loyaltyValue = value["statLine"]:match("b%](%d+)%[")
+                if loyaltyValue ~= nil then data.genericCount = tonumber(loyaltyValue) end
+                local pwAbilityCount = 0 --used to count amount of PW abilities vs amount of slots
+
+                --setting PW abilities
+                for innerIndex, innerValue in ipairs (value["textLines"]) do
+                    local tooltipIndex = innerValue:find("%w%:%s")
+                    local abilityDelta = nil
+
+                    if tooltipIndex ~= nil then
+                        pwAbilityCount = pwAbilityCount + 1
+                        abilityDelta = innerValue:sub(1, tooltipIndex)
+                        abilityDelta = abilityDelta:find("[xX]+") ~= nil and "X" or tonumber(abilityDelta)
+                    end
+
+                    local abilityText = tooltipIndex ~= nil and innerValue:sub(tooltipIndex + 2) or innerValue
+                    data.cardFaceData[index]["pwAbilities"][innerIndex] = {abilityDelta = abilityDelta, abilityText = abilityText}
+                    data.cardFaceData[index]["pwCount"] = data.cardFaceData[index]["pwCount"] + 1
+                    
+                    broadcastToAll(abilityDelta.."  "..abilityText.."  "..data.cardFaceData[index]["pwCount"])
+                end
+                
+                --trying to deal with placement edge cases - which all happen when there are only two slots
+                if (data.cardFaceData[index]["pwCount"] == 2) then
+                    --there's only one card with only 2 slots and 2 abilities... and it uses unique placement for some reason
+                    if pwAbilityCount ~= 2 then
+                        data.cardFaceData[index]["pwCount"] = data.cardFaceData[index]["pwCount"] + 1
+                        --the other cards with 2 slots format correctly if one of the slots is counted as 2 (making a virtual third slot)
+                        if data.cardFaceData[index]["pwAbilities"][1]["abilityText"]:len() > data.cardFaceData[index]["pwAbilities"][2]["abilityText"]:len() then
+                            data.cardFaceData[index]["pwAbilities"][3] = {abilityDelta = data.cardFaceData[index]["pwAbilities"][2]["abilityDelta"], abilityText = data.cardFaceData[index]["pwAbilities"][2]["abilityText"]}
+                            data.cardFaceData[index]["pwAbilities"][2] = {abilityDelta = nil, abilityText = "filler created to correct formatting, this should not be appear anywhere"}
+                        else
+                            data.cardFaceData[index]["pwAbilities"][3] = {abilityDelta = nil, abilityText = "filler created to correct formatting, this should not be appear anywhere"}
                         end
                     end
                 end
             end
-
-            enc.call("APIsetObjectData",{obj=object,propID=pID,data=data})
         end
+
+        data.displayPlaneswalkerAbilities = data.cardFaceData[1]["pwCount"] > 0
+        data.displayCounters = autoActivateCounter and (data.cardFaceData[1].isPlaneswalker or data.hasOtherCounter)
+
+        enc.call("APIsetObjectData",{obj=object,propID=pID,data=data})
+    end
+    --new parser end
+    if data == nil then
+        local dataTable = {obj = object}
+        data = autoActivate(dataTable)
+        return
+    end
+    
+    if data.hasParsed == false then
+        data.hasParsed = true
+
+        local description = object.getDescription()
+        description = description:gsub("−","-") --no, I mean the REAL minus sign
+
+        --[[local loyaltyValue = getLoyaltyFromCard(description)
+
+        if loyaltyValue ~= nil then
+            data.genericCount = tonumber(loyaltyValue)
+            data.isPlaneswalker = true
+
+            data.planesWalkerAbilitySlots = getPlaneswalkerAbilitiesFromCard(description)
+            data.displayPlaneswalkerAbilities = true
+        else
+            data.isPlaneswalker = false
+            data.hasOtherCounter = hasKeywordOrNamedCounter(object, description)
+        end --]]
+        --data.displayCounters = true --autoActivateCounter and (data.isPlaneswalker or data.hasOtherCounter)
+
+        local power = getPowerFromCard(description)
+        local toughness = getToughnessFromCard(description)
+
+        if power ~= nil and toughness ~= nil then
+            data.power = tonumber(power)
+            data.toughness = tonumber(toughness)
+
+            data.displayPowTou = autoActivatePowTou
+        else
+            data.displayPowTou = false
+        end
+        
+        if true then --just using this to make the plusone section collapsible
+            local typeLine = string.match(object.getName(),"\n.*")
+            if typeLine ~= nil and string.find(typeLine, "Creature") == nil then
+                data.displayPlusOne = false
+            else
+                local selfReferralString = {"it", object.getName():gsub('\n.*','')}
+
+                local parsedValue
+                for index, nameString in ipairs (selfReferralString) do
+                    parsedValue = string.match(description, "[%+%-]1/[%+%-]1 counters? on "..nameString)
+                    if parsedValue ~= nil then
+                        data.displayPlusOne = autoActivatePlusOne
+                        break
+                    end
+                end
+            end
+        end
+
+        enc.call("APIsetObjectData",{obj=object,propID=pID,data=data})
     end
 end
 
@@ -1671,7 +1820,6 @@ function getPlaneswalkerAbilitiesFromCard(description)
                 abilityDelta = abilityDelta:find("[xX]+") ~= nil and "X" or tonumber(abilityDelta)
             end
             local abilityText = tooltipIndex ~= nil and parsedAbilities[key][index]:sub(tooltipIndex + 2) or parsedAbilities[key][index]
-            broadcastToAll(tostring(abilityDelta).."  "..abilityText.."\n")
             planesWalkerAbilitySlots[key][index] = {abilityDelta = abilityDelta, abilityText = abilityText}
             planesWalkerAbilitySlots[key.."Count"] = planesWalkerAbilitySlots[key.."Count"] + 1
         end
@@ -1801,7 +1949,7 @@ function autoActivate(dataTable)
             if enc.call("APIcheckEnabled", {obj=dataTable.obj, propID = pID}) == false then
                 enc.call("APItoggleProperty",{obj=dataTable.obj, propID = pID})
 
-                parseCardData(dataTable.obj)
+                parseCardData(dataTable.obj, enc)
 
                 enc.call("APIrebuildButtons",{obj=dataTable.obj})
                 return data
@@ -1862,11 +2010,9 @@ function onObjectEnterScriptingZone(zone, object)
             else
                 deckCandidateTracker[playerColor][containerGUID] = {count = 1}
             end
-            --broadcastToAll(tostring(deckCandidateTracker[playerColor][containerGUID].count))
             if deckCandidateTracker[playerColor][containerGUID].count == 7 then
-                --deckCandidateTracker[playerColor][containerGUID].count = 0 --wonky workaround
-
                 deck = getObjectFromGUID(containerGUID)
+                --[[
                 deck.createButton({
                     click_function='doNothing',
                     function_owner=self,
@@ -1883,7 +2029,7 @@ function onObjectEnterScriptingZone(zone, object)
                     color = {0,0,0},
     
                     rotation={0,0,45}
-                })
+                })--]]
                 
                 addPlayerDeck(playerColor, containerGUID)
             end
@@ -1894,7 +2040,6 @@ end
 function addPlayerDeck(playerColor, containerGUID)
     if deckPlayerPairs[containerGUID] ~= nil then
         deckCandidateTracker[deckPlayerPairs[containerGUID]][containerGUID].count = 0
-        --broadcastToAll("Overriding deck ownership")
     end
     deckPlayerPairs[containerGUID] = playerColor
 end
