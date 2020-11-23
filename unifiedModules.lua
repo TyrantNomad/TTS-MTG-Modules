@@ -261,7 +261,6 @@ function registerModule()
                     {basePower = 0, baseToughness = 0, isPlaneswalker = false, pwAbilities = {}, pwCount = 0},
                     {basePower = 0, baseToughness = 0, isPlaneswalker = false, pwAbilities = {}, pwCount = 0} --backface
                 },
-                --changed hasLoyalty to isPlaneswalker
 
                 doubleFaceType = "none",
                 --[[
@@ -269,7 +268,7 @@ function registerModule()
                 "none", single-faced card
                 "split", two cards in a single face side by side
                 "flip", two cards in a single face in opposite orientations, sharing a central art
-                "unknown", DFC (!/null) - old importer DFC, button should reimport card
+                "oldImport", DFC (!/null) - old importer DFC, button should reimport card
                 "modal", DFC (^/^v) - at least one side is a non-legendary land
                 "weredrazi", DFC(full moon/squid thing) - back side is type eldrazi
                 "discovery", DFC(compass/land) - back side is type legendary land
@@ -658,13 +657,6 @@ function createButtons(t)
                     }
                 })
             end
-            
-            --double-faced card buttons
-            if true then
-                -- ● ▴▾ ☾ ☀✹❂  ❍ (full moon) ◬ (land?) ❖☸⁜※ (windmill?) ⇪ (pre-planeswalker?) ◉◎❢❣∈☫❤♡♥♆♨♛ (pieces?)
-                -- eldrazi symbol ❤♨
-
-            end
         end
         
         --simplecounter buttons & planeswalker abilities
@@ -759,7 +751,7 @@ function createButtons(t)
                 --data.cardFaces[index]["pwAbilities"]
                 if data.cardFaces[activeFace]["pwAbilities"] ~= nil and data.cardFaces[activeFace]["pwCount"] > 0 then
                     for index, value in ipairs(data.cardFaces[activeFace]["pwAbilities"]) do
-                        if data.cardFaces[1]["pwAbilities"][index]["abilityDelta"] ~= nil then
+                        if data.cardFaces[activeFace]["pwAbilities"][index]["abilityDelta"] ~= nil then
                             local pwAbilityDelta = data.cardFaces[activeFace]["pwAbilities"][index]["abilityDelta"]
                             local pwAbilityCost = 
                                 type(pwAbilityDelta) == "string" and "-X " or
@@ -1161,6 +1153,156 @@ function createButtons(t)
                 scale = buttonScale
             })
         end
+
+        --DFC section
+        if data.doubleFaceType ~= "none" and data.doubleFaceType ~= "flip" and data.doubleFaceType ~= "split" then
+            --offsets are all over the place rip, but these should fit the vast majority of most common prints
+            local typeOffsets = {
+                planeswalker = {-0.865, -1.330},
+                modal = {-0.875, -1.300},
+                discovery = {-0.87, -1.305},
+                werecard = {-0.87, -1.305},
+                weredrazi = {-0.87, -1.300},
+                ascendant = {-0.87, -1.305},
+                artifactWerecard = {-0.85, -1.280},
+                oldImport = {-0.87, -1.315}
+            }
+            
+            local horizontalOffset
+            local verticalOffset
+
+            if data.cardFaces[activeFace]["isPlaneswalker"] then
+                horizontalOffset = typeOffsets["planeswalker"][1]
+                verticalOffset = typeOffsets["planeswalker"][2]
+            elseif data.doubleFaceType == "werecard" and t.object.getDescription():find("rtifact") then
+                horizontalOffset = typeOffsets["artifactWerecard"][1]
+                verticalOffset = typeOffsets["artifactWerecard"][2]
+            else
+                horizontalOffset = typeOffsets[data.doubleFaceType][1]
+                verticalOffset = typeOffsets[data.doubleFaceType][2]
+            end
+            
+            local dfcSize = 150
+            local bgFontSize = 420
+
+            --dfcBGcolor = data.doubleFaceType == "oldImport" and Color(0.7, 0, 0) or Color(0.17,0.17,0.12)
+            dfcBGcolor = Color(0.17,0.17,0.12)
+            dfcFrameColor = data.doubleFaceType == "oldImport" and Color(1, 0.8, 0) or Color(1,1,0.9)
+
+            --bg 
+            t.object.createButton({
+                click_function = 'ToggleActiveFace',
+                label = "●",
+                function_owner = self,
+
+                height = dfcSize,
+                width = dfcSize,
+
+                color = Color.Yellow,
+
+                position=
+                {
+                    ((horizontalOffset)*flip*scaler.x),
+                    0.35*flip*scaler.z,
+                    (verticalOffset)*scaler.y
+                },
+
+                font_size = bgFontSize * 1.25,
+                font_color = dfcBGcolor,
+
+                rotation={0,0,90-90*flip},
+                scale = {0.5,0.5,0.5}
+            })
+
+            --bg  frame
+            t.object.createButton({
+                click_function = 'doNothing',
+                label = "○",
+                function_owner = self,
+
+                height = 0,
+                width = 0,
+
+                position=
+                {
+                    ((horizontalOffset)*flip*scaler.x),
+                    0.40*flip*scaler.z,
+                    (verticalOffset)*scaler.y
+                },
+
+                font_size = bgFontSize,
+                font_color = dfcFrameColor:lerp(Color(0,0,0), 0.35),
+
+                rotation={0,0,-90-90*flip},
+                scale = {0.5,0.5,0.5}
+            })
+
+            local dfcLabelSymbols = {
+                --structure:
+                --name = {{frontSymbol1, frontSymbol2}, {backSymbol1, backSymbol2}}
+                modal = {{"▴",""},{"▴ "," ▾"}},
+                werecard = {{"❂",""},{" ☾  ",""}},
+                weredrazi = {{"⊙",""},{"☤","♣"}},
+                discovery = {{"※",""},{"    ▴     ","     ▴    "}},
+                ascendant = {{"✧",""},{"✦",""}},
+                oldImport = {{"!","! !"},{"!","! !"}}
+            }
+
+            local dfcSymbolOffset = {
+                modal = {0.013, 0.013},
+                werecard = {0.012, 0.012},
+                weredrazi = {0.005, 0.040},
+                discovery = {-0.003, 0.018},
+                ascendant = {0.010, 0.012},
+                oldImport = {0.005, -0.01}
+            }
+
+            --label symbol 2
+            t.object.createButton({
+                click_function = 'doNothing',
+                label = dfcLabelSymbols[data.doubleFaceType][activeFace][2],
+                function_owner = self,
+
+                height = 0,
+                width = 0,
+
+                position=
+                {
+                    ((horizontalOffset)*flip*scaler.x),
+                    0.40*flip*scaler.z,
+                    (verticalOffset)*scaler.y
+                },
+
+                font_size = bgFontSize * 0.42,
+                font_color = dfcFrameColor:lerp(Color(0,0,0),0.15),
+
+                rotation={0,0,90-90*flip},
+                scale = {0.5,0.5,0.5}
+            })
+
+            --label symbol 1
+            t.object.createButton({
+                click_function = 'doNothing',
+                label = dfcLabelSymbols[data.doubleFaceType][activeFace][1],
+                function_owner = self,
+
+                height = 0,
+                width = 0,
+
+                position=
+                {
+                    ((horizontalOffset)*flip*scaler.x),
+                    0.40*flip*scaler.z,
+                    (verticalOffset + dfcSymbolOffset[data.doubleFaceType][activeFace])*scaler.y
+                },
+
+                font_size = bgFontSize * 0.42,
+                font_color = dfcFrameColor,
+
+                rotation={0,0,90-90*flip},
+                scale = {0.5,0.5,0.5}
+            })
+        end
     end
 end
 
@@ -1293,6 +1435,33 @@ function ToggleDisplayPlusOne (tar, ply, alt)
     dataTable.varDelta = not data.displayPlusOne
     dataTable.varName = "displayPlusOne"
     PropagateValueChange(dataTable)
+end
+
+function ToggleActiveFace (tar, ply, alt)
+    local dataTable = GetClickdataTable(tar, ply, alt)
+    local data = dataTable.encoder.call("APIgetObjectData",{obj=tar,propID=pID})
+    data.activeFace = data.activeFace == 1 and 2 or 1
+
+    if data.cardFaces[data.activeFace]["isPlaneswalker"] then
+        data.displayPlaneswalkerAbilities = true
+        data.displayCounters = true
+        data.displayPowTou = false
+    else
+        data.displayPlaneswalkerAbilities = false
+        data.displayCounters = false
+
+        facePower = tonumber(data.cardFaces[data.activeFace]["basePower"]) == nil and 0 or tonumber(data.cardFaces[data.activeFace]["basePower"])
+        faceToughness = tonumber(data.cardFaces[data.activeFace]["baseToughness"]) == nil and 0 or tonumber(data.cardFaces[data.activeFace]["baseToughness"])
+        data.displayPowTou = (facePower ~= 0) or (faceToughness ~= 0)
+    end
+
+    if alt == false then
+        tar.flip()
+        dataTable.encoder.call("APIFlip",{obj = tar})
+    end
+
+    dataTable.encoder.call("APIsetObjectData",{obj = tar, propID = pID, data = data})
+    enc.call("APIrebuildButtons",{obj = tar})
 end
 
 function ReceiveGemClick (tar, ply, alt)
@@ -1755,7 +1924,6 @@ function parseCardData(object, enc)
                 end
             end
         end
-        broadcastToAll(tostring(data.doubleFaceType))
 
         data.displayPowTou = autoActivatePowTou and (cardData[1]["typeLine"]:find("reature") ~= nil)
         data.hasOtherCounter = hasKeywordOrNamedCounter(cardData[1]["nameLine"], descriptionField) --maybe refactor this to not use the whole field
