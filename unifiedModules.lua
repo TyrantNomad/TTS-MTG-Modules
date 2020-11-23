@@ -255,6 +255,7 @@ function registerModule()
                 displayPlaneswalkerAbilities = false,
                 displayPowTou = false,
                 displayPlusOne = false,
+                displayOwnership = true,
 
                 activeFace = 1,
                 cardFaces = {
@@ -333,9 +334,8 @@ function createButtons(t)
 
         local amuzetCardImporter = GetAmuzetsCardImporter()
 
-        local loyaltyOffset = (data.displayCounters and data.cardFaces[activeFace].isPlaneswalker) and -0.3 or 0
-        local colorLightGrey = {133/255,133/255,133/255}
-        local colorDarkGrey = {55/255,55/255,55/255}
+        local colorLightGrey = {177/255,177/255,177/255}
+        local colorDarkGrey = {40/255,40/255,40/255}
         local colorCardBorderBlack = {19/255,16/255,12/255}
 
         local hexTooltipLowlight = "[BBBBBB]"
@@ -343,6 +343,14 @@ function createButtons(t)
         local hexTooltipHighlight = "[FFCC00]"
         local hexTooltipBluelight = "[7799FF]"
         local hexTooltipRedlight = "[FF2222]"
+
+        local counterHeight = 0.33
+        local loyaltyOffset = (data.displayCounters and data.cardFaces[activeFace].isPlaneswalker) and -counterHeight or 0
+        local rimSize = 30
+        local statHorizontalOffset = 0.75
+        local statVerticalOffset = 1.3315
+        local loyaltyHorizontalOffset = 0.81
+        local counterHorizontalOffset = -0.87
 
         local cardOwner = data.ownerColor == nil and "Grey" or data.ownerColor
         local ownershipColor = Color.fromString(cardOwner)
@@ -410,7 +418,10 @@ function createButtons(t)
             multiSelectTooltip..
             hexTooltipHighlight..(data.displayPowTou == true and "HIDE" or "SHOW").."[-]"..hexTooltipMidlight.." POWER/TOUGHNESS\n"..
             hexTooltipLowlight.."Toggles Power/Toughness on the card"
-
+        local buttonTooltipToggleDisplayOwnership =
+            multiSelectTooltip..
+            hexTooltipHighlight..(data.displayOwnership == true and "HIDE" or "SHOW").."[-]"..hexTooltipMidlight.." OWN & CONTROL\n"..
+            hexTooltipLowlight.."Toggles Ownership Gem on the card"
         local buttonTooltipExactCopy =
             singleSelectTooltip..
             hexTooltipHighlight.."EXACT COPY[-]"..hexTooltipMidlight.." (SPAM-CLICKABLE)[-]\n"..
@@ -482,7 +493,7 @@ function createButtons(t)
                 }
             })
 
-            --toggle plusone
+            --toggle powtou
             t.object.createButton({
                 click_function = 'ToggleDisplayPowTou',
                 function_owner = self,
@@ -507,7 +518,7 @@ function createButtons(t)
                 }
             })
 
-            --toggle powtou
+            --toggle plusone
             t.object.createButton({
                 click_function = 'ToggleDisplayPlusOne',
                 function_owner = self,
@@ -523,6 +534,7 @@ function createButtons(t)
                 color = data.displayPlusOne and buttonBackgroundColorOn or buttonBackgroundColorOff,
                 hover_color = buttonHoverColor,
 
+                rotation = {0, 0, 90 - 90 * flip},
                 position =
                 {
                     -horizontalOffset * flip * scaler.x,
@@ -663,12 +675,9 @@ function createButtons(t)
         if data.displayCounters then
             local verticalSize = 130
             local horizontalSize = 145
-            local rimSize = 30
 
 
-            local horizontalOffset = -0.81
-            local flipHorizontal = data.cardFaces[activeFace].isPlaneswalker and -1 or 1
-            local verticalOffset = 1.275
+            local horizontalOffset = data.cardFaces[activeFace].isPlaneswalker and loyaltyHorizontalOffset or counterHorizontalOffset
             --tile size is about 500 for 1 unit
 
             --bg
@@ -683,9 +692,9 @@ function createButtons(t)
 
                 position=
                 {
-                    flipHorizontal * ((horizontalOffset)*flip*scaler.x),
+                    ((horizontalOffset)*flip*scaler.x),
                     0.28*flip*scaler.z,
-                    (verticalOffset)*scaler.y
+                    (statVerticalOffset)*scaler.y
                 },
 
                 rotation={0,0,-90-90*flip}
@@ -701,9 +710,9 @@ function createButtons(t)
 
                 position=
                 {
-                    flipHorizontal * ((horizontalOffset)*flip*scaler.x),
+                    ((horizontalOffset)*flip*scaler.x),
                     0.35*flip*scaler.z,
-                    (verticalOffset)*scaler.y
+                    (statVerticalOffset)*scaler.y
                 },
 
                 height= verticalSize,
@@ -724,16 +733,16 @@ function createButtons(t)
 
                 position=
                 {
-                    flipHorizontal * (horizontalOffset)*flip*scaler.x,
+                    (horizontalOffset)*flip*scaler.x,
                     0.35*flip*scaler.z,
-                    0.20 + (verticalOffset)*scaler.y
+                    0.23 + (statVerticalOffset)*scaler.y
                 },
 
                 height= 80,
                 width= horizontalSize,
                 color = {0.3,0.3,0.3, 0.3},
 
-                scale = {1,1,0.5},
+                scale = {1,1,0.7},
 
                 rotation={0,0,90-90*flip}
             })
@@ -755,7 +764,7 @@ function createButtons(t)
                             local pwAbilityDelta = data.cardFaces[activeFace]["pwAbilities"][index]["abilityDelta"]
                             local pwAbilityCost = 
                                 type(pwAbilityDelta) == "string" and "-X " or
-                                (pwAbilityDelta > 0 and "+" or "")..pwAbilityDelta..(pwAbilityDelta ~= 0 and " " or "")
+                                (pwAbilityDelta > 0 and "+" or "")..pwAbilityDelta.." "--(pwAbilityDelta ~= 0 and " " or "")
                             local pwAbilityTooltip =
                                 hexTooltipHighlight..pwAbilityCost.."Loyalty:[-]\n".. 
                                 hexTooltipMidlight..data.cardFaces[activeFace]["pwAbilities"][index]["abilityText"]
@@ -774,7 +783,7 @@ function createButtons(t)
                 
                                 position =
                                 {
-                                    pwAbilityHorizontalOffset * ((horizontalOffset)*flip*scaler.x),
+                                    pwAbilityHorizontalOffset * ((-loyaltyHorizontalOffset)*flip*scaler.x),
                                     0.35*flip*scaler.z,
                                     pwAbilityVerticalOffset * scaler.y
                                 },
@@ -799,7 +808,7 @@ function createButtons(t)
                 
                                 position =
                                 {
-                                    pwAbilityHorizontalOffset * ((horizontalOffset)*flip*scaler.x),
+                                    pwAbilityHorizontalOffset * ((-loyaltyHorizontalOffset)*flip*scaler.x),
                                     0.35*flip*scaler.z,
                                     pwAbilityVerticalOffset * scaler.y
                                 },
@@ -824,7 +833,7 @@ function createButtons(t)
                 
                                 position =
                                 {
-                                    pwAbilityHorizontalOffset * ((horizontalOffset)*flip*scaler.x),
+                                    pwAbilityHorizontalOffset * ((-loyaltyHorizontalOffset)*flip*scaler.x),
                                     0.35*flip*scaler.z,
                                     (pwAbilityVerticalOffset + (pwAbilityDelta <= 0 and pwTinyTextOffset*2 or -pwTinyTextOffset)) * scaler.y
                                 },
@@ -850,19 +859,14 @@ function createButtons(t)
             --size for double digit 320
             --size for single digit 270?
 
+            local horizontalSize = 320
             local verticalSize = 130
-            horizontalSize = 320
-            
-            local rimSize = 30
-
-            local horizontalOffset = 0.69
-            local verticalOffset = 1.275  + loyaltyOffset
 
             local powerText = data.cardFaces[data.activeFace]["basePower"]
-            powerText = type(powerText) == "number" and (powerText + data.power) or (data.power == 0 and powerText or data.power)
+            powerText = tonumber(powerText) ~= nil and (powerText + data.power) or (data.power == 0 and powerText or data.power)
 
             local toughnessText = data.cardFaces[data.activeFace]["baseToughness"]
-            toughnessText = type(toughnessText) == "number" and (toughnessText + data.toughness) or (data.toughness == 0 and toughnessText or data.toughness)
+            toughnessText = tonumber(toughnessText) ~= nil and (toughnessText + data.toughness) or (data.toughness == 0 and toughnessText or data.toughness)
             --tile size is about 500 for 1 unit
 
             --powtou increase both button
@@ -873,16 +877,16 @@ function createButtons(t)
 
                 position=
                 {
-                    (horizontalOffset)*flip*scaler.x,
+                    (statHorizontalOffset)*flip*scaler.x,
                     0.35*flip*scaler.z,
-                    0.20 + (verticalOffset)*scaler.y
+                    0.23 + (statVerticalOffset + loyaltyOffset)*scaler.y
                 },
 
                 height= 60,
                 width= horizontalSize-40,
                 color = {0.3,0.3,0.3, 0.3},
 
-                scale = {1,1,0.5},
+                scale = {1,1,0.7},
 
                 rotation={0,0,90-90*flip}
             })
@@ -904,10 +908,12 @@ function createButtons(t)
 
                 position=
                 {
-                    (horizontalOffset)*flip*scaler.x,
+                    (statHorizontalOffset)*flip*scaler.x,
                     0.28*flip*scaler.z,
-                    (verticalOffset)*scaler.y
-                }
+                    (statVerticalOffset + loyaltyOffset)*scaler.y
+                },
+
+                rotation={0,0,-90-90*flip}
             })
 
             --powtou BG right
@@ -917,9 +923,9 @@ function createButtons(t)
 
                 position=
                 {
-                    (horizontalOffset + 20/500 - (horizontalSize/4/500))*flip*scaler.x,
+                    (statHorizontalOffset + 20/500 - (horizontalSize/4/500))*flip*scaler.x,
                     0.35*flip*scaler.z,
-                    (verticalOffset)*scaler.y
+                    (statVerticalOffset + loyaltyOffset)*scaler.y
                 },
 
                 height= verticalSize + 26,
@@ -936,9 +942,9 @@ function createButtons(t)
 
                 position=
                 {
-                    (horizontalOffset - 20/500 + (horizontalSize/4/500))*flip*scaler.x,
+                    (statHorizontalOffset - 20/500 + (horizontalSize/4/500))*flip*scaler.x,
                     0.35*flip*scaler.z,
-                    (verticalOffset)*scaler.y
+                    (statVerticalOffset + loyaltyOffset)*scaler.y
                 },
 
                 height= verticalSize + 26,
@@ -958,9 +964,9 @@ function createButtons(t)
 
                 position=
                 {
-                    (horizontalOffset + 20/500 - (horizontalSize/4/500))*flip*scaler.x,
+                    (statHorizontalOffset + 20/500 - (horizontalSize/4/500))*flip*scaler.x,
                     0.35*flip*scaler.z,
-                    (verticalOffset)*scaler.y
+                    (statVerticalOffset + loyaltyOffset)*scaler.y
                 },
 
                 height= verticalSize,
@@ -983,9 +989,9 @@ function createButtons(t)
 
                 position=
                 {
-                    (horizontalOffset - 20/500 + (horizontalSize/4/500))*flip*scaler.x,
+                    (statHorizontalOffset - 20/500 + (horizontalSize/4/500))*flip*scaler.x,
                     0.35*flip*scaler.z,
-                    (verticalOffset)*scaler.y
+                    (statVerticalOffset + loyaltyOffset)*scaler.y
                 },
 
                 height= verticalSize,
@@ -1009,12 +1015,6 @@ function createButtons(t)
             local verticalSize = 130
             local horizontalSize = baseWidth + (string.len(math.abs(data.plusOneCounters)..math.abs(data.plusOneCounters)) * widthPerDigit)
 
-            local rimSize = 30
-
-            local horizontalOffset = 0.69
-            local verticalOffset = 0.99 + loyaltyOffset
-            --tile size is about 500 for 1 unit
-
             plusOneLabelString = ""..((data.plusOneCounters >= 0) and "+" or "")..data.plusOneCounters..'/'..((data.plusOneCounters >= 0) and "+" or "")..data.plusOneCounters.." "
 
             -- delta 10 button
@@ -1025,9 +1025,9 @@ function createButtons(t)
 
                 position=
                 {
-                    (horizontalOffset)*flip*scaler.x,
+                    (statHorizontalOffset)*flip*scaler.x,
                     0.35*flip*scaler.z,
-                    -0.2 + (verticalOffset)*scaler.y
+                    -0.2 + (statVerticalOffset + loyaltyOffset - counterHeight)*scaler.y
                 },
 
                 height= 60,
@@ -1052,9 +1052,9 @@ function createButtons(t)
 
                 position=
                 {
-                    (horizontalOffset)*flip*scaler.x,
+                    (statHorizontalOffset)*flip*scaler.x,
                     0.28*flip*scaler.z,
-                    (verticalOffset)*scaler.y
+                    (statVerticalOffset + loyaltyOffset - counterHeight)*scaler.y
                 },
 
                 rotation={0,0,-90-90*flip}
@@ -1070,9 +1070,9 @@ function createButtons(t)
 
                 position=
                 {
-                    (horizontalOffset)*flip*scaler.x,
+                    (statHorizontalOffset)*flip*scaler.x,
                     0.35*flip*scaler.z,
-                    (verticalOffset)*scaler.y
+                    (statVerticalOffset + loyaltyOffset - counterHeight)*scaler.y
                 },
 
                 height= verticalSize,
@@ -1092,65 +1092,90 @@ function createButtons(t)
             local horizontalSize = 500
             local buttonScale = {0.375,0.375,0.375} -- used to fix weird scaling issues on small size values
 
-            --bg with ownership function
+            if data.displayOwnership then
+                --bg with ownership function
+                t.object.createButton({
+                    tooltip =   buttonTooltipOwnershipGem,
+                    click_function= "ReceiveGemClick",
+                    function_owner=self,
+    
+                    position=
+                    {
+                        0,
+                        0.35*flip*scaler.z,
+                        verticalOffset
+                    },
+    
+                    height= verticalSize,
+                    width= horizontalSize,
+                    color = colorCardBorderBlack,
+    
+                    rotation={0,0,90-90*flip},
+                    scale = buttonScale
+                })
+    
+                --ownership gem
+                t.object.createButton({
+                    click_function='doNothing',
+                    function_owner=self,
+    
+                    position=
+                    {
+                        0,
+                        0.4*flip*scaler.z,
+                        verticalOffset
+                    },
+    
+                    height= verticalSize * 0.7,
+                    width= horizontalSize * 0.85,
+                    color = Color.Black:lerp(ownershipColor, 0.33),
+    
+                    rotation={180,0,90-90*flip},
+                    scale = buttonScale
+                })
+    
+                --control gem
+                t.object.createButton({
+                    click_function= "doNothing",
+                    function_owner=self,
+    
+                    position=
+                    {
+                        0,
+                        0.45*flip*scaler.z,
+                        verticalOffset
+                    },
+    
+                    height= verticalSize * 0.4,
+                    width= horizontalSize * 0.66,
+                    color = Color.White:lerp(controlColor, 0.66),
+    
+                    rotation={180,0,90-90*flip},
+                    scale = buttonScale
+                })
+
+            end
+            
+            --toggle visibility
             t.object.createButton({
-                tooltip =   buttonTooltipOwnershipGem,
-                click_function= "ReceiveGemClick",
+                tooltip = buttonTooltipToggleDisplayOwnership,
+                click_function= "ToggleDisplayOwnership",
                 function_owner=self,
 
                 position=
                 {
                     0,
                     0.35*flip*scaler.z,
-                    verticalOffset
+                    0.23 + verticalOffset
                 },
 
-                height= verticalSize,
+                height= 80,
                 width= horizontalSize,
-                color = colorCardBorderBlack,
+                color = {0.3,0.3,0.3, 0.3},
 
-                rotation={0,0,90-90*flip},
-                scale = buttonScale
-            })
+                scale = {1,1,0.7},
 
-            --ownership gem
-            t.object.createButton({
-                click_function='doNothing',
-                function_owner=self,
-
-                position=
-                {
-                    0,
-                    0.4*flip*scaler.z,
-                    verticalOffset
-                },
-
-                height= verticalSize * 0.7,
-                width= horizontalSize * 0.85,
-                color = Color.Black:lerp(ownershipColor, 0.33),
-
-                rotation={180,0,90-90*flip},
-                scale = buttonScale
-            })
-
-            --control gem
-            t.object.createButton({
-                click_function= "doNothing",
-                function_owner=self,
-
-                position=
-                {
-                    0,
-                    0.45*flip*scaler.z,
-                    verticalOffset
-                },
-
-                height= verticalSize * 0.4,
-                width= horizontalSize * 0.66,
-                color = Color.White:lerp(controlColor, 0.66),
-
-                rotation={180,0,90-90*flip},
-                scale = buttonScale
+                rotation={0,0,90-90*flip}
             })
         end
 
@@ -1434,6 +1459,14 @@ function ToggleDisplayPlusOne (tar, ply, alt)
     local data = dataTable.encoder.call("APIgetObjectData",{obj=tar,propID=pID})
     dataTable.varDelta = not data.displayPlusOne
     dataTable.varName = "displayPlusOne"
+    PropagateValueChange(dataTable)
+end
+
+function ToggleDisplayOwnership (tar, ply, alt)
+    local dataTable = GetClickdataTable(tar, ply, alt)
+    local data = dataTable.encoder.call("APIgetObjectData",{obj=tar,propID=pID})
+    dataTable.varDelta = not data.displayOwnership
+    dataTable.varName = "displayOwnership"
     PropagateValueChange(dataTable)
 end
 
