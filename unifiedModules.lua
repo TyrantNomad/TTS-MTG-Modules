@@ -60,7 +60,7 @@ function forceEncoderUpdate(placeholderCode)
 
         local dataTable = {recursiveCall=false}
         tryAutoRegister(dataTable)
-    else broadcastToAll("Failed to find Encoder to update") end
+    else broadcastToAll("[888888][EASY MODULES][-]\nFailed to find Encoder to update") end
 end
 
 function forceImporterUpdate(placeholderCode)
@@ -72,7 +72,7 @@ function forceImporterUpdate(placeholderCode)
     if encoder ~= nil then
         importer.script_code = placeholderCode
         importer.reload()
-    else broadcastToAll("Failed to find Card Importer to update") end
+    else broadcastToAll("[888888][EASY MODULES][-]\nFailed to find Card Importer to update") end
 end
 
 function forcePlaceholderDependency(placeholderCode, moduleName)
@@ -236,7 +236,7 @@ function registerModule()
     local enc = Global.getVar('Encoder')
     if enc ~= nil then
         if tonumber(enc.getVar("version")) < 3.18 then 
-            broadcastToAll("Encoder version too old. To use this module, manually upgrade it to v3.18+ or type 'force encoder update' to attempt a forced update")
+            broadcastToAll("[888888][EASY MODULES][-]\nEncoder version too old. To use this module, manually upgrade it to v3.18+ or type 'force encoder update' to attempt a forced update")
             return
         end
     
@@ -290,8 +290,8 @@ function registerModule()
 
         refreshModuleChipButtons()
     else
-        broadcastToAll("No encoder found. You need [FFCC00]Encoder v3.18+ by Tipsy Hobbit (steamid: 13465982)[-] to use the module")
-        broadcastToAll("Get the Encoder from the Steam Workshop or type [FFCC00]'force encoder temporary'[-] to spawn a placeholder")
+        broadcastToAll("[888888][EASY MODULES][-]\nNo encoder found. You need [FFCC00]Encoder v3.18+ by Tipsy Hobbit (steamid: 13465982)[-] to use the module")
+        broadcastToAll("[888888][EASY MODULES][-]\nGet the Encoder from the Steam Workshop or type [FFCC00]'force encoder temporary'[-] to spawn a placeholder")
     end
 end
 
@@ -450,228 +450,247 @@ function createButtons(t)
             hexTooltipMidlight.."Imports this card's emblems & tokens through Scryfall[-]\n\n"..
             hexTooltipRedlight.."REQUIRES AMUZET'S CARD IMPORTER[-]"
 
-        if true then --side buttons, toggles on the left and utils on the right
-            local buttonBackgroundColorOff = {0,0,0,  0.7}
-            local buttonBackgroundColorOn = {0,0,0,   0.9}
-            local buttonBackgroundColorError = {0.6,0,0,   0.5}
-
-            local buttonTextColorOff = {0.8,0.8,0.8, 0.8}
-            local buttonTextColorOn = {1,0.8,0.4, 0.7}
-            local buttonTextColorOnExtra = {0.6, 1, 0.7, 0.7}
-            local buttonTextSize = 55
-
-            local buttonHoverColor = {0,0,0,1}
-
-            local buttonDimensions = 90
-            local verticalSpacing = 0.2
-
-            local horizontalOffset = 1.035
-            local verticalOffset = -0.36
-
-            --toggle counters & planeswalker abilities
-            t.object.createButton({
-                click_function = 'ToggleDisplayCounter',
-                function_owner = self,
-
-                label = "①",
-                font_size = buttonTextSize + 8,
-                font_color = data.displayCounters and ((data.cardFaces[activeFace].isPlaneswalker and data.displayPlaneswalkerAbilities) and buttonTextColorOnExtra or buttonTextColorOn) or buttonTextColorOff,
-                tooltip = buttonTooltipToggleDisplayCounters..((data.displayCounters and data.cardFaces[activeFace].isPlaneswalker) and buttonTooltipToggleDisplayCountersPlaneswalkerAbilities or ""),
-
-                height = buttonDimensions,
-                width = buttonDimensions,
-
-                color = data.displayCounters and buttonBackgroundColorOn or buttonBackgroundColorOff,
-                hover_color = buttonHoverColor,
-
-                rotation = {0, 0, 90 - 90 * flip},
-                position =
-                {
-                   - horizontalOffset * flip * scaler.x,
-                    0.35*flip*scaler.z,
-                    verticalOffset + 2 * verticalSpacing * scaler.y
-                }
-            })
-
-            --toggle powtou
-            t.object.createButton({
-                click_function = 'ToggleDisplayPowTou',
-                function_owner = self,
-
-                label = "1/",
-                font_size = buttonTextSize,
-                font_color = data.displayPowTou and buttonTextColorOn or buttonTextColorOff,
-                tooltip = buttonTooltipToggleDisplayPowTou,
-
-                height = buttonDimensions,
-                width = buttonDimensions,
-
-                color = data.displayPowTou and buttonBackgroundColorOn or buttonBackgroundColorOff,
-                hover_color = buttonHoverColor,
-
-                rotation = {0, 0, 90 - 90 * flip},
-                position =
-                {
-                    -horizontalOffset * flip * scaler.x,
-                    0.35*flip*scaler.z,
-                    verticalOffset + 1 * verticalSpacing * scaler.y
-                }
-            })
-
-            --toggle plusone
-            t.object.createButton({
-                click_function = 'ToggleDisplayPlusOne',
-                function_owner = self,
-
-                label = "+1 ",
-                font_size = buttonTextSize,
-                font_color = data.displayPlusOne and buttonTextColorOn or buttonTextColorOff,
-                tooltip = buttonTooltipToggleDisplayPlusOne,
-
-                height = buttonDimensions,
-                width = buttonDimensions,
-
-                color = data.displayPlusOne and buttonBackgroundColorOn or buttonBackgroundColorOff,
-                hover_color = buttonHoverColor,
-
-                rotation = {0, 0, 90 - 90 * flip},
-                position =
-                {
-                    -horizontalOffset * flip * scaler.x,
-                    0.35*flip*scaler.z,
-                    verticalOffset + 0 * verticalSpacing * scaler.y
-                }
-            })
-
-            --exact copy
-            t.object.createButton({
-                click_function = "MakeExactCopy",
-                function_owner = self,
-
-                label = "❐",
-                font_size = buttonTextSize + 6,
-                font_color = buttonTextColorOff,
-                tooltip = buttonTooltipExactCopy,
-
-                height = buttonDimensions,
-                width = buttonDimensions,
-
-                color = buttonBackgroundColorOff,
-                hover_color = buttonHoverColor,
-
-                rotation = {0, 0, 90 - 90 * flip},
-                position =
-                {
-                    horizontalOffset * flip * scaler.x,
-                    0.35*flip*scaler.z,
-                    verticalOffset + 0 * verticalSpacing * scaler.y
-                }
-            })
-
-            --reimport
-            if amuzetCardImporter ~= nil then --re-import button
-                t.object.createButton({
-                    click_function = "ReImport",
-                    function_owner = self,
-
-                    label = "↺",
-                    font_size = buttonTextSize + 16,
-                    font_color = buttonTextColorOff,
-                    tooltip = buttonTooltipReImport,
-
-                    height = buttonDimensions,
-                    width = buttonDimensions,
-
-                    color = buttonBackgroundColorOff,
-                    hover_color = buttonHoverColor,
-
-                    rotation = {0, 0, 90 - 90 * flip},
-                    position =
-                    {
-                        horizontalOffset * flip * scaler.x,
-                        0.35*flip*scaler.z,
-                        verticalOffset + 1 * verticalSpacing * scaler.y
-                    }
-                })
-            else
-                t.object.createButton({
-                    click_function = 'ReImport',
-                    function_owner = self,
-
-                    label = "↺",
-                    font_size = buttonTextSize + 16,
-                    font_color = buttonTextColorOff,
-                    tooltip = buttonTooltipReImportMissingImporter,
-
-                    height = buttonDimensions,
-                    width = buttonDimensions,
-
-                    color = buttonBackgroundColorError,
-                    hover_color = buttonBackgroundColorError,
-
-                    rotation = {0, 0, 90 - 90 * flip},
-                    position =
-                    {
-                        horizontalOffset * flip * scaler.x,
-                        0.35*flip*scaler.z,
-                        verticalOffset + 1 * verticalSpacing * scaler.y
-                    }
-                })
-            end
-
-            --emblems and tokens
-            if amuzetCardImporter ~= nil then --emblem button
-                t.object.createButton({
-                    click_function = "EmblemsAndTokens",
-                    function_owner = self,
-    
-                    label = "☗",
-                    font_size = buttonTextSize,
-                    font_color = buttonTextColorOff,
-                    tooltip = buttonTooltipEmblemsTokens,
-    
-                    height = buttonDimensions,
-                    width = buttonDimensions,
-    
-                    color = buttonBackgroundColorOff,
-                    hover_color = buttonHoverColor,
-    
-                    rotation = {0, 180, 90 - 90 * flip}, -- the label looks like an emblem when upside down
-                    position =
-                    {
-                        horizontalOffset * flip * scaler.x,
-                        0.35*flip*scaler.z,
-                        verticalOffset + 2 * verticalSpacing * scaler.y
-                    }
-                })
-            else
-                t.object.createButton({
-                    click_function = 'EmblemsAndTokens',
-                    function_owner = self,
-    
-                    label = "☗",
-                    font_size = buttonTextSize,
-                    font_color = buttonTextColorOff,
-                    tooltip = buttonTooltipEmblemsTokensMissingImporter,
-    
-                    height = buttonDimensions,
-                    width = buttonDimensions,
-    
-                    color = buttonBackgroundColorError,
-                    hover_color = buttonBackgroundColorError,
-    
-                    rotation = {0, 180, 90 - 90 * flip}, -- the label looks like an emblem when upside down
-                    position =
-                    {
-                        horizontalOffset * flip * scaler.x,
-                        0.35*flip*scaler.z,
-                        verticalOffset + 2 * verticalSpacing * scaler.y
-                    }
-                })
-            end
-        end
+        local buttonTooltipFlipDFC =
+            singleSelectTooltip..
+            hexTooltipMidlight.."L-Click: [-]".."[FFFFFF]FLIP TO [-]"..hexTooltipHighlight..(activeFace == 1 and "BACK" or "FRONT").."[-] FACE\n"..
+            hexTooltipLowlight.."Flip the card and change the active face\n\n"..
+            hexTooltipMidlight.."R-CLICK:\n[-]"..
+            hexTooltipLowlight.."Changes active face without flipping[-]"
         
-        --simplecounter buttons & planeswalker abilities
+        local buttonTooltipFlipDFCbackless =
+            hexTooltipRedlight.."NO BACK FACE IMAGE FOUND"..
+            hexTooltipMidlight.."L-Click: [-]"..hexTooltipHighlight.."Reimport card \n\n"..
+            hexTooltipMidlight.."R-CLICK:\n[-]"..
+            hexTooltipLowlight.."Change active face without flipping[-]"
+        
+        local buttonTooltipFlipDFColdImport =
+            hexTooltipRedlight.."BAD DATA - REIMPORT REQUIRED\n"..
+            hexTooltipMidlight.."L-Click: [-]"..hexTooltipHighlight.."Reimport card \n\n"..
+            hexTooltipMidlight.."R-CLICK:\n[-]"..
+            hexTooltipLowlight.."Change active face without flipping[-]"
+        
+        if true then --side buttons, toggles on the left and utils on the right
+                local buttonBackgroundColorOff = {0,0,0,  0.7}
+                local buttonBackgroundColorOn = {0,0,0,   0.9}
+                local buttonBackgroundColorError = {0.6,0,0,   0.5}
+    
+                local buttonTextColorOff = {0.8,0.8,0.8, 0.8}
+                local buttonTextColorOn = {1,0.8,0.4, 0.7}
+                local buttonTextColorOnExtra = {0.6, 1, 0.7, 0.7}
+                local buttonTextSize = 55
+    
+                local buttonHoverColor = {0,0,0,1}
+    
+                local buttonDimensions = 90
+                local verticalSpacing = 0.2
+    
+                local horizontalOffset = 1.035
+                local verticalOffset = -0.36
+    
+                --toggle counters & planeswalker abilities
+                t.object.createButton({
+                    click_function = 'ToggleDisplayCounter',
+                    function_owner = self,
+    
+                    label = "①",
+                    font_size = buttonTextSize + 8,
+                    font_color = data.displayCounters and ((data.cardFaces[activeFace].isPlaneswalker and data.displayPlaneswalkerAbilities) and buttonTextColorOnExtra or buttonTextColorOn) or buttonTextColorOff,
+                    tooltip = buttonTooltipToggleDisplayCounters..((data.displayCounters and data.cardFaces[activeFace].isPlaneswalker) and buttonTooltipToggleDisplayCountersPlaneswalkerAbilities or ""),
+    
+                    height = buttonDimensions,
+                    width = buttonDimensions,
+    
+                    color = data.displayCounters and buttonBackgroundColorOn or buttonBackgroundColorOff,
+                    hover_color = buttonHoverColor,
+    
+                    rotation = {0, 0, 90 - 90 * flip},
+                    position =
+                    {
+                       - horizontalOffset * flip * scaler.x,
+                        0.35*flip*scaler.z,
+                        verticalOffset + 2 * verticalSpacing * scaler.y
+                    }
+                })
+    
+                --toggle powtou
+                t.object.createButton({
+                    click_function = 'ToggleDisplayPowTou',
+                    function_owner = self,
+    
+                    label = "1/",
+                    font_size = buttonTextSize,
+                    font_color = data.displayPowTou and buttonTextColorOn or buttonTextColorOff,
+                    tooltip = buttonTooltipToggleDisplayPowTou,
+    
+                    height = buttonDimensions,
+                    width = buttonDimensions,
+    
+                    color = data.displayPowTou and buttonBackgroundColorOn or buttonBackgroundColorOff,
+                    hover_color = buttonHoverColor,
+    
+                    rotation = {0, 0, 90 - 90 * flip},
+                    position =
+                    {
+                        -horizontalOffset * flip * scaler.x,
+                        0.35*flip*scaler.z,
+                        verticalOffset + 1 * verticalSpacing * scaler.y
+                    }
+                })
+    
+                --toggle plusone
+                t.object.createButton({
+                    click_function = 'ToggleDisplayPlusOne',
+                    function_owner = self,
+    
+                    label = "+1 ",
+                    font_size = buttonTextSize,
+                    font_color = data.displayPlusOne and buttonTextColorOn or buttonTextColorOff,
+                    tooltip = buttonTooltipToggleDisplayPlusOne,
+    
+                    height = buttonDimensions,
+                    width = buttonDimensions,
+    
+                    color = data.displayPlusOne and buttonBackgroundColorOn or buttonBackgroundColorOff,
+                    hover_color = buttonHoverColor,
+    
+                    rotation = {0, 0, 90 - 90 * flip},
+                    position =
+                    {
+                        -horizontalOffset * flip * scaler.x,
+                        0.35*flip*scaler.z,
+                        verticalOffset + 0 * verticalSpacing * scaler.y
+                    }
+                })
+    
+                --exact copy
+                t.object.createButton({
+                    click_function = "MakeExactCopy",
+                    function_owner = self,
+    
+                    label = "❐",
+                    font_size = buttonTextSize + 6,
+                    font_color = buttonTextColorOff,
+                    tooltip = buttonTooltipExactCopy,
+    
+                    height = buttonDimensions,
+                    width = buttonDimensions,
+    
+                    color = buttonBackgroundColorOff,
+                    hover_color = buttonHoverColor,
+    
+                    rotation = {0, 0, 90 - 90 * flip},
+                    position =
+                    {
+                        horizontalOffset * flip * scaler.x,
+                        0.35*flip*scaler.z,
+                        verticalOffset + 0 * verticalSpacing * scaler.y
+                    }
+                })
+    
+                --reimport
+                if amuzetCardImporter ~= nil then --re-import button
+                    t.object.createButton({
+                        click_function = "ReImport",
+                        function_owner = self,
+    
+                        label = "↺",
+                        font_size = buttonTextSize + 16,
+                        font_color = buttonTextColorOff,
+                        tooltip = buttonTooltipReImport,
+    
+                        height = buttonDimensions,
+                        width = buttonDimensions,
+    
+                        color = buttonBackgroundColorOff,
+                        hover_color = buttonHoverColor,
+    
+                        rotation = {0, 0, 90 - 90 * flip},
+                        position =
+                        {
+                            horizontalOffset * flip * scaler.x,
+                            0.35*flip*scaler.z,
+                            verticalOffset + 1 * verticalSpacing * scaler.y
+                        }
+                    })
+                else
+                    t.object.createButton({
+                        click_function = 'ReImport',
+                        function_owner = self,
+    
+                        label = "↺",
+                        font_size = buttonTextSize + 16,
+                        font_color = buttonTextColorOff,
+                        tooltip = buttonTooltipReImportMissingImporter,
+    
+                        height = buttonDimensions,
+                        width = buttonDimensions,
+    
+                        color = buttonBackgroundColorError,
+                        hover_color = buttonBackgroundColorError,
+    
+                        rotation = {0, 0, 90 - 90 * flip},
+                        position =
+                        {
+                            horizontalOffset * flip * scaler.x,
+                            0.35*flip*scaler.z,
+                            verticalOffset + 1 * verticalSpacing * scaler.y
+                        }
+                    })
+                end
+    
+                --emblems and tokens
+                if amuzetCardImporter ~= nil then --emblem button
+                    t.object.createButton({
+                        click_function = "EmblemsAndTokens",
+                        function_owner = self,
+        
+                        label = "☗",
+                        font_size = buttonTextSize,
+                        font_color = buttonTextColorOff,
+                        tooltip = buttonTooltipEmblemsTokens,
+        
+                        height = buttonDimensions,
+                        width = buttonDimensions,
+        
+                        color = buttonBackgroundColorOff,
+                        hover_color = buttonHoverColor,
+        
+                        rotation = {0, 180, 90 - 90 * flip}, -- the label looks like an emblem when upside down
+                        position =
+                        {
+                            horizontalOffset * flip * scaler.x,
+                            0.35*flip*scaler.z,
+                            verticalOffset + 2 * verticalSpacing * scaler.y
+                        }
+                    })
+                else
+                    t.object.createButton({
+                        click_function = 'EmblemsAndTokens',
+                        function_owner = self,
+        
+                        label = "☗",
+                        font_size = buttonTextSize,
+                        font_color = buttonTextColorOff,
+                        tooltip = buttonTooltipEmblemsTokensMissingImporter,
+        
+                        height = buttonDimensions,
+                        width = buttonDimensions,
+        
+                        color = buttonBackgroundColorError,
+                        hover_color = buttonBackgroundColorError,
+        
+                        rotation = {0, 180, 90 - 90 * flip}, -- the label looks like an emblem when upside down
+                        position =
+                        {
+                            horizontalOffset * flip * scaler.x,
+                            0.35*flip*scaler.z,
+                            verticalOffset + 2 * verticalSpacing * scaler.y
+                        }
+                    })
+                end
+            end
+
+            --simplecounter buttons & planeswalker abilities
         if data.displayCounters then
             local verticalSize = 130
             local horizontalSize = 145
@@ -1170,7 +1189,7 @@ function createButtons(t)
                 },
 
                 height= 80,
-                width= horizontalSize,
+                width= horizontalSize / 3,
                 color = {0.3,0.3,0.3, 0.3},
 
                 scale = {1,1,0.7},
@@ -1210,13 +1229,20 @@ function createButtons(t)
             local dfcSize = 150
             local bgFontSize = 420
 
-            --dfcBGcolor = data.doubleFaceType == "oldImport" and Color(0.7, 0, 0) or Color(0.17,0.17,0.12)
+            local dfcTooltip = data.doubleFaceType == "oldImport" and buttonTooltipFlipDFColdImport or
+                buttonTooltipFlipDFC
+
+            local dfcFunction = data.doubleFaceType == "oldImport" and "ReceiveReimportOrChangeActiveFace" or "ReceiveChangeActiveFace"
+            
             dfcBGcolor = Color(0.17,0.17,0.12)
-            dfcFrameColor = data.doubleFaceType == "oldImport" and Color(1, 0.8, 0) or Color(1,1,0.9)
+            dfcFrameColor = data.doubleFaceType == "oldImport" and Color(1, 0.3, 0) or Color(1, 0.8, 0) --hextooltip highlight color
+            dfcTextColor = data.doubleFaceType == "oldImport" and Color(1, 0.8, 0) or Color(1,1,1)
 
             --bg 
             t.object.createButton({
-                click_function = 'ToggleActiveFace',
+                click_function = dfcFunction,
+                tooltip = dfcTooltip,
+
                 label = "●",
                 function_owner = self,
 
@@ -1299,7 +1325,7 @@ function createButtons(t)
                 },
 
                 font_size = bgFontSize * 0.42,
-                font_color = dfcFrameColor:lerp(Color(0,0,0),0.15),
+                font_color = dfcTextColor:lerp(Color(0,0,0),0.15),
 
                 rotation={0,0,90-90*flip},
                 scale = {0.5,0.5,0.5}
@@ -1322,7 +1348,7 @@ function createButtons(t)
                 },
 
                 font_size = bgFontSize * 0.42,
-                font_color = dfcFrameColor,
+                font_color = dfcTextColor,
 
                 rotation={0,0,90-90*flip},
                 scale = {0.5,0.5,0.5}
@@ -1354,7 +1380,7 @@ function GetPlaneswalkerAbilityVerticalOffset (abilityIndex, abilityCount)
 
     if abilityIndex >= 1 and abilityIndex <= 4 then
         if (abilityCount >= 4) then
-            if (abilityIndex > 4) then broadcastToAll("Invalid planeswalker ability index received: "..abilityIndex) end
+            if (abilityIndex > 4) then broadcastToAll("[888888][EASY MODULES][-]\nInvalid planeswalker ability index received: "..abilityIndex) end
             
             return fourSlotOffsets[math.min(abilityIndex, 4)]
         elseif (abilityCount == 3) then
@@ -1367,7 +1393,7 @@ function GetPlaneswalkerAbilityVerticalOffset (abilityIndex, abilityCount)
             return fourSlotOffsets[math.min(abilityIndex + 2, 4)]
         end
     else
-        broadcastToAll("Invalid planeswalker ability index received: "..abilityIndex)
+        broadcastToAll("[888888][EASY MODULES][-]\nInvalid planeswalker ability index received: "..abilityIndex)
     end
 end
 
@@ -1401,26 +1427,26 @@ function UpdateEncoderDataValue (dataTable)
             if type(objectData[dataTable.varName]) ==  "number" then
                 objectData[dataTable.varName] = objectData[dataTable.varName] + dataTable.varDelta
             else
-                broadcastToAll("Type mismatch in value update attempt, received "..tostring(dataTable.varDelta).." against "..tostring(objectData[dataTable.varName]))
+                broadcastToAll("[888888][EASY MODULES][-]\nType mismatch in value update attempt, received "..tostring(dataTable.varDelta).." against "..tostring(objectData[dataTable.varName]))
                 broadcastToAll(type(dataTable.varDelta).."  "..type(objectData[dataTable.varName]))
             end
         elseif type(dataTable.varDelta) == "boolean" then
             if type(objectData[dataTable.varName]) ==  "boolean" then
                 objectData[dataTable.varName] = dataTable.varDelta
             else
-                broadcastToAll("Type mismatch in value update attempt, received "..tostring(dataTable.varDelta).." against "..tostring(objectData[dataTable.varName]))
+                broadcastToAll("[888888][EASY MODULES][-]\nType mismatch in value update attempt, received "..tostring(dataTable.varDelta).." against "..tostring(objectData[dataTable.varName]))
             end
         elseif type(dataTable.varDelta) == "string" then
             if type(objectData[dataTable.varName]) ==  "string" then
                 objectData[dataTable.varName] = dataTable.varDelta
             else
-                broadcastToAll("Type mismatch in value update attempt, received "..tostring(dataTable.varDelta).." against "..tostring(objectData[dataTable.varName]))
+                broadcastToAll("[888888][EASY MODULES][-]\nType mismatch in value update attempt, received "..tostring(dataTable.varDelta).." against "..tostring(objectData[dataTable.varName]))
             end
         else
-            broadcastToAll("Error in value update attempt, received "..tostring(dataTable.varDelta))
+            broadcastToAll("[888888][EASY MODULES][-]\nError in value update attempt, received "..tostring(dataTable.varDelta))
         end
     else
-        broadcastToAll("Overriding nil value for: "..dataTable.varName)
+        broadcastToAll("[888888][EASY MODULES][-]\nOverriding nil value for: "..dataTable.varName)
         objectData[dataTable.varName] = dataTable.varDelta
     end
 
@@ -1470,7 +1496,7 @@ function ToggleDisplayOwnership (tar, ply, alt)
     PropagateValueChange(dataTable)
 end
 
-function ToggleActiveFace (tar, ply, alt)
+function ReceiveChangeActiveFace (tar, ply, alt)
     local dataTable = GetClickdataTable(tar, ply, alt)
     local data = dataTable.encoder.call("APIgetObjectData",{obj=tar,propID=pID})
     data.activeFace = data.activeFace == 1 and 2 or 1
@@ -1495,6 +1521,12 @@ function ToggleActiveFace (tar, ply, alt)
 
     dataTable.encoder.call("APIsetObjectData",{obj = tar, propID = pID, data = data})
     enc.call("APIrebuildButtons",{obj = tar})
+end
+
+function ReceiveReimportOrChangeActiveFace (tar, ply, alt)
+    if alt then ReceiveChangeActiveFace(tar, ply, alt) return end
+
+    ReImport(tar, ply, alt)
 end
 
 function ReceiveGemClick (tar, ply, alt)
@@ -1701,8 +1733,8 @@ function GetAmuzetsCardImporter ()
 
         local importerVersion = tonumber(string.match(amuzetCardImporter.getVar("version"),"%d+%.%d*"))
         if importerVersion < 1.9 then
-            broadcastToAll ("Unsupported Card Importer version found, version 1.9 or newer is required")
-            broadcastToAll ("Type [FFCC00]'force importer update'[-] to update your Card Importer or get the new one from the Steam Workshop")
+            broadcastToAll ("[888888][EASY MODULES][-]\nUnsupported Card Importer version found, version 1.9 or newer is required")
+            broadcastToAll ("[888888][EASY MODULES][-]\nType [FFCC00]'force importer update'[-] to update your Card Importer or get the new one from the Steam Workshop")
             return
         end
 
@@ -1728,8 +1760,13 @@ end
 
 lockReImport = false
 function ReImport (tar, ply, alt)
-    if lock == true then
-        broadcastToAll("SPAM-CLICK DETECTED\nTry again in a few seconds")
+    if lockReImport == true then
+        broadcastToAll("[888888][EASY MODULES][-]\nSPAM-CLICK DETECTED\nTry again in a few seconds")
+        return
+    end
+
+    if tar.getDescription() == "" then
+        broadcastToAll("[888888][EASY MODULES][-]\nERROR\nCard Object has no name")
         return
     end
 
@@ -1750,15 +1787,24 @@ function ReImport (tar, ply, alt)
             delay = 2
         })
     else
-        broadcastToAll("This feature requires [FFCC00]Amuzet's Card Importer[-]")
+        broadcastToAll("[888888][EASY MODULES][-]\nThis feature requires [FFCC00]Amuzet's Card Importer[-]")
         broadcastToAll("Get the Card Importer from the Steam Workshop or type [FFCC00]'force importer temporary'[-] to create a placeholder")
     end
+end
+
+function ReEnableReImport ()
+    lockReImport = false
 end
 
 lockEmblemsAndTokens = false
 function EmblemsAndTokens (tar, ply, alt)
     if lockEmblemsAndTokens == true then
-        broadcastToAll("SPAM-CLICK DETECTED\nTry again in a few seconds")
+        broadcastToAll("[888888][EASY MODULES][-]\nSPAM-CLICK DETECTED\nTry again in a few seconds")
+        return
+    end
+
+    if tar.getDescription() == "" then
+        broadcastToAll("[888888][EASY MODULES][-]\nERROR\nCard Object has no name")
         return
     end
 
@@ -1780,7 +1826,7 @@ function EmblemsAndTokens (tar, ply, alt)
             delay = 2
         })
     else
-        broadcastToAll("This feature requires [FFCC00]Amuzet's Card Importer[-]")
+        broadcastToAll("[888888][EASY MODULES][-]\nThis feature requires [FFCC00]Amuzet's Card Importer[-]")
         broadcastToAll("Get the Card Importer from the Steam Workshop or type [FFCC00]'force importer temporary'[-] to create a placeholder")
     end
 end
@@ -1791,7 +1837,7 @@ end
 
 --Parse Functions
 function parseCardData(object, enc)
-    local cardData = {{nameLine = "", typeLine = "", textLines = {}, statLine = ""}, doubleFaced = false} -- does this work?
+    local cardData = {{nameLine = "", typeLine = "", textLines = {}, statLine = ""}} -- does this work?
 
     local data = enc.call("APIgetObjectData",{obj=object,propID=pID})
 
@@ -1830,9 +1876,7 @@ function parseCardData(object, enc)
         descriptionField = descriptionField:gsub("−","-") --no, I mean the REAL minus sign
         local descriptionLines = string.splitUsingFind(descriptionField, "\n")
 
-        if oldImportDFC or generalDFC then --setting data into the correct fields
-            cardData["doubleFaced"] = true
-
+        if oldImportDFC or generalDFC then --setting data into the correct fields=
             local faceIndex = 1
             local faceLine = 0
             --double-face
@@ -1871,6 +1915,8 @@ function parseCardData(object, enc)
                 end
             end
         end
+
+        if cardData[1]["nameLine"] == nil or cardData[1]["typeLine"] == nil then return end
 
         for index, value in ipairs (cardData) do
             --planeswalker check
@@ -2017,7 +2063,15 @@ function onObjectDropped (player, object)
 end
 
 function onObjectSpawn(obj)
-    --broadcastToAll(obj.tag)
+    if obj.tag == "Card" then
+        CheckRevertInvertedFaces(obj)
+
+        cardTable = CheckGetSetCardTable(obj)
+    end
+
+    if obj.tag == "Deck" then
+        containerTable = CheckGetSetContainerTable(obj)
+    end
 end
 
 function TryTimedEncoding(object)
@@ -2070,13 +2124,14 @@ function InitializeCardData(object, enc)
 end
 
 function TryAssignOwnership(object, enc)
-    local owner = deckPlayerPairs[object.getVar("sourceContainer")]
+    local cardTable = CheckGetSetCardTable(object)
+    local ownerColor = cardTable.ownerColor ~= "" and cardTable.ownerColor or (cardTable.containerID ~= "" and deckPlayerPairs[cardTable.containerID] or nil)
 
-    if type(owner) == "string" then
+    if ownerColor ~= nil and ownerColor  ~= "" then
         local data = enc.call("APIgetObjectData",{obj = object, propID = pID})
 
-        data.ownerColor = owner
-        data.controllerColor = owner
+        data.ownerColor = ownerColor
+        data.controllerColor = ownerColor
 
         enc.call("APIsetObjectData",{obj = object, propID = pID, data = data})
     end
@@ -2095,8 +2150,76 @@ end
 
 function onObjectLeaveContainer (container, object)
     if object.tag ~= "Card" then return end
+    local containerTable = CheckGetSetContainerTable(container)
+    CheckGetSetCardTable(object, containerTable)
+end
 
-    object.setVar("sourceContainer", container.guid)
+function onObjectEnterContainer(container, object)
+    if container.getTable("tyrantUnified") ~= nil or object.getTable("tyrantUnified") == nil then return end
+    if object.tag ~= "Card" and object.tag ~= "Container" then return end
+
+    sourceTable = CheckGetSetCardTable(object, nil)
+    dataTable = {sourceTable = sourceTable, object = container}
+    
+    Timer.destroy(container.getGUID().."setDataTimer")
+    Timer.create({
+        identifier = container.getGUID().."setDataTimer",
+        function_name = "ResetDeckTable",
+        function_owner = self,
+        parameters = dataTable,
+        delay = 1
+    })
+end
+
+function ResetDeckTable(dataTable)
+    dataTable.object.setTable("tyrantUnified", dataTable.sourceTable)
+end
+
+function CheckGetSetContainerTable (container)
+    local containerTable = container.getTable("tyrantUnified")
+    if containerTable == nil then
+        containerData = container.getCustomObject()
+        containerTable = {cardBack = containerData.back, frontFace = "", backFace = "", containerID = container.guid, ownerColor = ""}
+        container.setTable("tyrantUnified", containerTable)
+    end
+    return containerTable
+end
+
+function CheckGetSetCardTable (card, containerTable)
+    local cardTable = card.getTable("tyrantUnified")
+    if cardTable == nil then
+        cardData = card.getCustomObject()
+        cardTable = {cardBack = "", frontFace = cardData.front, backFace = cardData.back, containerID = "", ownerColor = ""}
+    end
+
+    if containerTable ~= nil then
+        cardTable.cardBack = containerTable.cardBack
+        cardTable.containerID = containerTable.containerID
+        cardTable.ownerColor = containerTable.ownerColor
+    end
+
+    card.setTable("tyrantUnified", cardTable)
+    return cardTable
+end
+
+function CheckRevertInvertedFaces (card)
+    local cardData = card.getCustomObject()
+    if cardData.face:find("/back/") and cardData.back:find("/front/") then
+        broadcastToAll("[888888][EASY MODULES][-]\nInverted card faces detected & switched for "..card.getName():match("(.-)\n"))
+        InvertCardFaces(card)
+    end
+end
+
+function InvertCardFaces (card)
+    cardData = card.getCustomObject()
+    initialFrontFace = cardData.face
+    initialBackFace = cardData.back
+
+    cardData.face = initialBackFace
+    cardData.back = initialFrontFace
+
+    card.setCustomObject(cardData)
+    card.reload()
 end
 
 function onObjectEnterScriptingZone(zone, object)
@@ -2104,10 +2227,12 @@ function onObjectEnterScriptingZone(zone, object)
 
     local enc = Global.getVar('Encoder')
     if enc ~= nil then
-        encoderZones = enc.getTable("Zones")
+        local encoderZones = enc.getTable("Zones")
         if encoderZones[zone.getGUID()] ~= nil then
-            local containerGUID = object.getVar("sourceContainer")
-            if containerGUID == nil then return end
+            local cardTable = CheckGetSetCardTable(object)
+            local containerGUID = cardTable.containerID
+            
+            if containerGUID == nil or containerGUID == "" then return end
 
             local playerColor = encoderZones[zone.getGUID()].color
             if (deckCandidateTracker[playerColor][containerGUID]) ~= nil then
@@ -2118,26 +2243,11 @@ function onObjectEnterScriptingZone(zone, object)
             end
             if deckCandidateTracker[playerColor][containerGUID].count == 7 then
                 deck = getObjectFromGUID(containerGUID)
-                --[[
-                deck.createButton({
-                    click_function='doNothing',
-                    function_owner=self,
-    
-                    position=
-                    {
-                        3,
-                        0,
-                        0,
-                    },
-    
-                    height= 300,
-                    width= 900,
-                    color = {0,0,0},
-    
-                    rotation={0,0,45}
-                })--]]
-                
-                addPlayerDeck(playerColor, containerGUID)
+                broadcastToAll("Deck set for ".."["..Color.fromString(playerColor):toHex(false).."]"..playerColor.."[-]")
+
+                if deck ~= nil then
+                    addPlayerDeck(playerColor, containerGUID)
+                end
             end
         end
     end
@@ -2148,6 +2258,13 @@ function addPlayerDeck(playerColor, containerGUID)
         deckCandidateTracker[deckPlayerPairs[containerGUID]][containerGUID].count = 0
     end
     deckPlayerPairs[containerGUID] = playerColor
+
+    containerObject = getObjectFromGUID(containerGUID)
+    if containerObject ~= nil then
+        containerTable = CheckGetSetContainerTable(containerObject)
+        containerTable.ownerColor = playerColor
+        containerObject.setTable("tyrantUnified", containerTable)
+    end
 end
 
 function doNothing()
