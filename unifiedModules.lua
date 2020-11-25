@@ -2,7 +2,7 @@
 --by @TyrantNomad
 --based on Power and Toughness by Tipsy Hobbit (steamid: 13465982)
 
-moduleVersion = "1.5"
+moduleVersion = "2.0"
 pID = "_MTG_Simplified_UNIFIED"
 
 isRegistered = false
@@ -235,7 +235,7 @@ function registerModule()
 
     local enc = Global.getVar('Encoder')
     if enc ~= nil then
-        if tonumber(enc.getVar("version")) < 3.18 then 
+        if tonumber(enc.getVar("version")) < 4.2 then 
             broadcastToAll("[888888][EASY MODULES][-]\nEncoder version too old. To use this module, manually upgrade it to v3.18+ or type 'force encoder update' to attempt a forced update")
             return
         end
@@ -243,29 +243,30 @@ function registerModule()
         local properties = {
             propID = pID,
             name = " Easy Modules Unified",
-            dataStruct = {
+            values = {"tyrantUnified"},
+            funcOwner = self,
+            callOnActivate = false,
+            activateFunc =''
+        }
+        enc.call("APIregisterProperty",properties)
+
+        local value = {
+            valueID = 'tyrantUnified', 
+            validType = 'nil',
+            desc = "why do my values have descriptions",  
+            default = {
                 hasParsed = false,
-
-                power=0, toughness=0,
-                plusOneCounters=0,
-                genericCount = 0, hasOtherCounter = false,
-                planesWalkerAbilitySlots = {frontFace = {}, frontFaceCount = 0, backFace = {}, backFaceCount = 0},
-
-                displayCounters = false,
-                displayPlaneswalkerAbilities = false,
-                displayPowTou = false,
-                displayPlusOne = false,
-                displayOwnership = true,
+                exactCopyOffset = 0,
 
                 activeFace = 1,
+                doubleFaceType = "none",
                 cardFaces = {
                     {basePower = 0, baseToughness = 0, isPlaneswalker = false, pwAbilities = {}, pwCount = 0},
                     {basePower = 0, baseToughness = 0, isPlaneswalker = false, pwAbilities = {}, pwCount = 0} --backface
                 },
 
-                doubleFaceType = "none",
                 --[[
-                types:
+                face types:
                 "none", single-faced card
                 "split", two cards in a single face side by side
                 "flip", two cards in a single face in opposite orientations, sharing a central art
@@ -277,16 +278,22 @@ function registerModule()
                 "werecard", DFC(sun/crescent moon) - any other card that transforms
                 --]]
 
-                exactCopyOffset = 0,
-            
-                ownerColor = "Grey",
-                controllerColor = "Grey"},
+                power = 0, toughness = 0,
+                plusOneCounters = 0,
+                namedCounters = 0, hasNonLoyaltyCounter = false,
 
-            funcOwner = self,
-            callOnActivate = false,
-            activateFunc =''
+                displayCounters = false,
+                displayPlaneswalkerAbilities = false,
+                displayPowTou = false,
+                displayPlusOne = false,
+                displayOwnership = true,
+
+
+                ownerColor = "Grey",
+                controllerColor = "Grey"
+            }
         }
-        enc.call("APIregisterProperty",properties)
+        enc.call("APIregisterValue",value)
 
         refreshModuleChipButtons()
     else
@@ -325,11 +332,12 @@ function createButtons(t)
     enc = Global.getVar('Encoder')
 
     if enc ~= nil then
-        parseCardData(t.object, enc)
+        parseCardData(t.obj, enc)
         
-        local data = enc.call("APIgetObjectData",{obj=t.object,propID=pID})
-        local flip = enc.call("APIgetFlip",{obj=t.object})
-        local scaler = {x=1,y=1,z=1}--t.object.getScale()
+        local encData = enc.call("APIobjGetPropData",{obj=t.obj,propID=pID})
+        local data = encData["tyrantUnified"]
+        local flip = enc.call("APIgetFlip",{obj=t.obj})
+        local scaler = {x=1,y=1,z=1}--t.obj.getScale()
         local activeFace = data.activeFace
 
         local amuzetCardImporter = GetAmuzetsCardImporter()
@@ -488,7 +496,7 @@ function createButtons(t)
                 local verticalOffset = -0.36
     
                 --toggle counters & planeswalker abilities
-                t.object.createButton({
+                t.obj.createButton({
                     click_function = 'ToggleDisplayCounter',
                     function_owner = self,
     
@@ -513,7 +521,7 @@ function createButtons(t)
                 })
     
                 --toggle powtou
-                t.object.createButton({
+                t.obj.createButton({
                     click_function = 'ToggleDisplayPowTou',
                     function_owner = self,
     
@@ -538,7 +546,7 @@ function createButtons(t)
                 })
     
                 --toggle plusone
-                t.object.createButton({
+                t.obj.createButton({
                     click_function = 'ToggleDisplayPlusOne',
                     function_owner = self,
     
@@ -563,7 +571,7 @@ function createButtons(t)
                 })
     
                 --exact copy
-                t.object.createButton({
+                t.obj.createButton({
                     click_function = "MakeExactCopy",
                     function_owner = self,
     
@@ -589,7 +597,7 @@ function createButtons(t)
     
                 --reimport
                 if amuzetCardImporter ~= nil then --re-import button
-                    t.object.createButton({
+                    t.obj.createButton({
                         click_function = "ReImport",
                         function_owner = self,
     
@@ -613,7 +621,7 @@ function createButtons(t)
                         }
                     })
                 else
-                    t.object.createButton({
+                    t.obj.createButton({
                         click_function = 'ReImport',
                         function_owner = self,
     
@@ -640,7 +648,7 @@ function createButtons(t)
     
                 --emblems and tokens
                 if amuzetCardImporter ~= nil then --emblem button
-                    t.object.createButton({
+                    t.obj.createButton({
                         click_function = "EmblemsAndTokens",
                         function_owner = self,
         
@@ -664,7 +672,7 @@ function createButtons(t)
                         }
                     })
                 else
-                    t.object.createButton({
+                    t.obj.createButton({
                         click_function = 'EmblemsAndTokens',
                         function_owner = self,
         
@@ -700,7 +708,7 @@ function createButtons(t)
             --tile size is about 500 for 1 unit
 
             --bg
-            t.object.createButton({
+            t.obj.createButton({
                 click_function = 'doNothing',
                 function_owner = self,
 
@@ -720,8 +728,8 @@ function createButtons(t)
             })
 
             --counter button
-            t.object.createButton({
-                label=" "..data.genericCount.." ",
+            t.obj.createButton({
+                label=" "..data.namedCounters.." ",
                 tooltip = buttonTooltipCounterSingleClick,
 
                 click_function='receiveCounterClick',
@@ -745,7 +753,7 @@ function createButtons(t)
             })
 
             --delta 10 button
-            t.object.createButton({
+            t.obj.createButton({
                 tooltip = buttonTooltipCounterTenClick,
                 click_function='receiveTenCounterClick',
                 function_owner=self,
@@ -793,7 +801,7 @@ function createButtons(t)
     
                             local pwAbilityVerticalOffset = GetPlaneswalkerAbilityVerticalOffset (index, data.cardFaces[activeFace]["pwCount"])
     
-                            t.object.createButton({
+                            t.obj.createButton({
                                 label = isNeutralAbility and "■" or "☗",
                                 tooltip = pwAbilityTooltip,
                 
@@ -818,7 +826,7 @@ function createButtons(t)
                                 scale = {0.8, 0.55, 0.55}
                             })
                 
-                            t.object.createButton({
+                            t.obj.createButton({
                                 label = isNeutralAbility and "■" or "☗",
                                 tooltip = buttonTooltipCounterSingleClick,
                 
@@ -843,7 +851,7 @@ function createButtons(t)
                                 scale = {0.8, 0.55, 0.55}
                             })
                 
-                            t.object.createButton({
+                            t.obj.createButton({
                                 label = pwAbilityCost,
                                 tooltip = buttonTooltipCounterSingleClick,
                 
@@ -889,7 +897,7 @@ function createButtons(t)
             --tile size is about 500 for 1 unit
 
             --powtou increase both button
-            t.object.createButton({
+            t.obj.createButton({
                 tooltip = buttonTooltipPowTouSingleClick,
                 click_function='receivePowTouClick',
                 function_owner=self,
@@ -911,7 +919,7 @@ function createButtons(t)
             })
 
             --powtou slash
-            t.object.createButton({
+            t.obj.createButton({
                 label = "/",
                 font_color = {1,1,1},
                 font_size= 80,
@@ -936,7 +944,7 @@ function createButtons(t)
             })
 
             --powtou BG right
-            t.object.createButton({
+            t.obj.createButton({
                 click_function='doNothing',
                 function_owner=self,
 
@@ -955,7 +963,7 @@ function createButtons(t)
             })
 
             --powtou BG left
-            t.object.createButton({
+            t.obj.createButton({
                 click_function='doNothing',
                 function_owner=self,
 
@@ -974,7 +982,7 @@ function createButtons(t)
             })
 
             --powtou pow
-            t.object.createButton({
+            t.obj.createButton({
                 label = powerText.." ",
                 tooltip = buttonTooltipPowerSingleClick,
 
@@ -999,7 +1007,7 @@ function createButtons(t)
             })
 
             --powtou tou
-            t.object.createButton({
+            t.obj.createButton({
                 label = " "..toughnessText,
                 tooltip = buttonTooltipToughnessSingleClick,
 
@@ -1037,7 +1045,7 @@ function createButtons(t)
             plusOneLabelString = ""..((data.plusOneCounters >= 0) and "+" or "")..data.plusOneCounters..'/'..((data.plusOneCounters >= 0) and "+" or "")..data.plusOneCounters.." "
 
             -- delta 10 button
-            t.object.createButton({
+            t.obj.createButton({
                 tooltip = buttonTooltipPlusOneTenClick,
                 click_function='receiveTenPlusOneClick',
                 function_owner=self,
@@ -1060,7 +1068,7 @@ function createButtons(t)
             })
 
             --bg button
-            t.object.createButton({
+            t.obj.createButton({
                 click_function = 'doNothing',
                 function_owner = self,
 
@@ -1080,7 +1088,7 @@ function createButtons(t)
             })
 
             --plus one button
-            t.object.createButton({
+            t.obj.createButton({
                 label=plusOneLabelString,
                 tooltip = buttonTooltipPlusOneSingleClick,
 
@@ -1113,7 +1121,7 @@ function createButtons(t)
 
             if data.displayOwnership then
                 --bg with ownership function
-                t.object.createButton({
+                t.obj.createButton({
                     tooltip =   buttonTooltipOwnershipGem,
                     click_function= "ReceiveGemClick",
                     function_owner=self,
@@ -1134,7 +1142,7 @@ function createButtons(t)
                 })
     
                 --ownership gem
-                t.object.createButton({
+                t.obj.createButton({
                     click_function='doNothing',
                     function_owner=self,
     
@@ -1154,7 +1162,7 @@ function createButtons(t)
                 })
     
                 --control gem
-                t.object.createButton({
+                t.obj.createButton({
                     click_function= "doNothing",
                     function_owner=self,
     
@@ -1176,7 +1184,7 @@ function createButtons(t)
             end
             
             --toggle visibility
-            t.object.createButton({
+            t.obj.createButton({
                 tooltip = buttonTooltipToggleDisplayOwnership,
                 click_function= "ToggleDisplayOwnership",
                 function_owner=self,
@@ -1218,7 +1226,7 @@ function createButtons(t)
             if data.cardFaces[activeFace]["isPlaneswalker"] then
                 horizontalOffset = typeOffsets["planeswalker"][1]
                 verticalOffset = typeOffsets["planeswalker"][2]
-            elseif data.doubleFaceType == "werecard" and t.object.getDescription():find("rtifact") then
+            elseif data.doubleFaceType == "werecard" and t.obj.getDescription():find("rtifact") then
                 horizontalOffset = typeOffsets["artifactWerecard"][1]
                 verticalOffset = typeOffsets["artifactWerecard"][2]
             else
@@ -1239,7 +1247,7 @@ function createButtons(t)
             dfcTextColor = data.doubleFaceType == "oldImport" and Color(1, 0.8, 0) or Color(1,1,1)
 
             --bg 
-            t.object.createButton({
+            t.obj.createButton({
                 click_function = dfcFunction,
                 tooltip = dfcTooltip,
 
@@ -1266,7 +1274,7 @@ function createButtons(t)
             })
 
             --bg  frame
-            t.object.createButton({
+            t.obj.createButton({
                 click_function = 'doNothing',
                 label = "○",
                 function_owner = self,
@@ -1309,7 +1317,7 @@ function createButtons(t)
             }
 
             --label symbol 2
-            t.object.createButton({
+            t.obj.createButton({
                 click_function = 'doNothing',
                 label = dfcLabelSymbols[data.doubleFaceType][activeFace][2],
                 function_owner = self,
@@ -1332,7 +1340,7 @@ function createButtons(t)
             })
 
             --label symbol 1
-            t.object.createButton({
+            t.obj.createButton({
                 click_function = 'doNothing',
                 label = dfcLabelSymbols[data.doubleFaceType][activeFace][1],
                 function_owner = self,
@@ -1408,7 +1416,7 @@ function PropagateValueChange (dataTable)
 
         if next(selection) ~= nil then
             for key, value in pairs(selection) do
-                if enc.call("APIobjectExist",{obj=value}) == true then
+                if enc.call("APIobjectExists",{obj=value}) == true then
                     dataTable.target = value
                     UpdateEncoderDataValue (dataTable)
                 end
@@ -1420,7 +1428,8 @@ function PropagateValueChange (dataTable)
 end
 
 function UpdateEncoderDataValue (dataTable)
-    local objectData = dataTable.encoder.call("APIgetObjectData",{obj = dataTable.target, propID = pID})
+    local encData = dataTable.encoder.call("APIobjGetPropData",{obj = dataTable.target, propID = pID})
+    local objectData = encData["tyrantUnified"]
 
     if objectData[dataTable.varName] ~= nil then
         if type(dataTable.varDelta) == "number" then
@@ -1450,7 +1459,9 @@ function UpdateEncoderDataValue (dataTable)
         objectData[dataTable.varName] = dataTable.varDelta
     end
 
-    dataTable.encoder.call("APIsetObjectData",{obj = dataTable.target, propID = pID, data = objectData})
+    encData["tyrantUnified"] = objectData
+    dataTable.encoder.call("APIobjSetPropData",{obj = dataTable.target, propID = pID, data = encData})
+    --enc.call("APIobjSetPropData",{obj=obj,propID=pID,data=data})
     enc.call("APIrebuildButtons",{obj = dataTable.target})
 end
 
@@ -1458,7 +1469,8 @@ function ToggleDisplayCounter (tar, ply, alt)
     if alt then TogglePlaneswalkerAbilities(tar, ply, alt) return end
 
     local dataTable = GetClickdataTable(tar, ply, alt)
-    local data = dataTable.encoder.call("APIgetObjectData",{obj=tar,propID=pID})
+    local encData = dataTable.encoder.call("APIobjGetPropData",{obj=tar,propID=pID})
+    local data = encData["tyrantUnified"]
     dataTable.varDelta = not data.displayCounters
     dataTable.varName = "displayCounters"
     PropagateValueChange(dataTable)
@@ -1466,7 +1478,8 @@ end
 
 function TogglePlaneswalkerAbilities (tar, ply, alt)
     local dataTable = GetClickdataTable(tar, ply, alt)
-    local data = dataTable.encoder.call("APIgetObjectData",{obj=tar,propID=pID})
+    local encData = dataTable.encoder.call("APIobjGetPropData",{obj=tar,propID=pID})
+    local data = encData["tyrantUnified"]
     dataTable.varDelta = not data.displayPlaneswalkerAbilities
     dataTable.varName = "displayPlaneswalkerAbilities"
     PropagateValueChange(dataTable)
@@ -1474,7 +1487,8 @@ end
 
 function ToggleDisplayPowTou (tar, ply, alt)
     local dataTable = GetClickdataTable(tar, ply, alt)
-    local data = dataTable.encoder.call("APIgetObjectData",{obj=tar,propID=pID})
+    local encData = dataTable.encoder.call("APIobjGetPropData",{obj=tar,propID=pID})
+    local data = encData["tyrantUnified"]
     dataTable.varDelta = not data.displayPowTou
     dataTable.varName = "displayPowTou"
     PropagateValueChange(dataTable)
@@ -1482,7 +1496,8 @@ end
 
 function ToggleDisplayPlusOne (tar, ply, alt)
     local dataTable = GetClickdataTable(tar, ply, alt)
-    local data = dataTable.encoder.call("APIgetObjectData",{obj=tar,propID=pID})
+    local encData = dataTable.encoder.call("APIobjGetPropData",{obj=tar,propID=pID})
+    local data = encData["tyrantUnified"]
     dataTable.varDelta = not data.displayPlusOne
     dataTable.varName = "displayPlusOne"
     PropagateValueChange(dataTable)
@@ -1490,7 +1505,8 @@ end
 
 function ToggleDisplayOwnership (tar, ply, alt)
     local dataTable = GetClickdataTable(tar, ply, alt)
-    local data = dataTable.encoder.call("APIgetObjectData",{obj=tar,propID=pID})
+    local encData = dataTable.encoder.call("APIobjGetPropData",{obj=tar,propID=pID})
+    local data = encData["tyrantUnified"]
     dataTable.varDelta = not data.displayOwnership
     dataTable.varName = "displayOwnership"
     PropagateValueChange(dataTable)
@@ -1498,7 +1514,8 @@ end
 
 function ReceiveChangeActiveFace (tar, ply, alt)
     local dataTable = GetClickdataTable(tar, ply, alt)
-    local data = dataTable.encoder.call("APIgetObjectData",{obj=tar,propID=pID})
+    local encData = dataTable.encoder.call("APIobjGetPropData",{obj=tar,propID=pID})
+    local data = encData["tyrantUnified"]
     data.activeFace = data.activeFace == 1 and 2 or 1
 
     if data.cardFaces[data.activeFace]["isPlaneswalker"] then
@@ -1519,7 +1536,8 @@ function ReceiveChangeActiveFace (tar, ply, alt)
         dataTable.encoder.call("APIFlip",{obj = tar})
     end
 
-    dataTable.encoder.call("APIsetObjectData",{obj = tar, propID = pID, data = data})
+    encData["tyrantUnified"] = data
+    dataTable.encoder.call("APIobjSetPropData",{obj = tar, propID = pID, data = encData})
     enc.call("APIrebuildButtons",{obj = tar})
 end
 
@@ -1536,7 +1554,8 @@ end
 
 function ReceiveOwnershipClick (tar, ply, alt)
     local dataTable = GetClickdataTable(tar, ply, alt)
-    local data = dataTable.encoder.call("APIgetObjectData",{obj=tar,propID=pID})
+    local encData = dataTable.encoder.call("APIobjGetPropData",{obj=tar,propID=pID})
+    local data = encData["tyrantUnified"]
     dataTable.varDelta = ply
     dataTable.varName = "ownerColor"
     PropagateValueChange(dataTable)
@@ -1544,7 +1563,8 @@ end
 
 function ReceiveControllerClick (tar, ply, alt)
     local dataTable = GetClickdataTable(tar, ply, alt)
-    local data = dataTable.encoder.call("APIgetObjectData",{obj=tar,propID=pID})
+    local encData = dataTable.encoder.call("APIobjGetPropData",{obj=tar,propID=pID})
+    local data = encData["tyrantUnified"]
     dataTable.varDelta = ply
     dataTable.varName = "controllerColor"
     PropagateValueChange(dataTable)
@@ -1564,19 +1584,20 @@ end
 function receiveCounterClick(tar,ply,alt)
     local dataTable = GetClickdataTable(tar, ply, alt)
     dataTable.varDelta = alt and -1 or 1
-    dataTable.varName = "genericCount"
+    dataTable.varName = "namedCounters"
     PropagateValueChange(dataTable)
 end
 
 function receiveTenCounterClick(tar,ply,alt)
     local dataTable = GetClickdataTable(tar, ply, alt)
     dataTable.varDelta = alt and -10 or 10
-    dataTable.varName = "genericCount"
+    dataTable.varName = "namedCounters"
     PropagateValueChange(dataTable)
 end
 
 function GetPlaneswalkerAbilityDelta (dataTable, index)
-    local data = dataTable.encoder.call("APIgetObjectData", {obj = dataTable.target, propID = pID})
+    local encData = dataTable.encoder.call("APIobjGetPropData",{obj=tar,propID=pID})
+    local data = encData["tyrantUnified"]
     dataTable.varDelta = data.cardData[data.activeFace]["pwAbilities"][index]["abilityDelta"]
     dataTable.varDelta = (type(dataTable.varDelta) == "number" and dataTable.varDelta or -1) * (dataTable.alt_click and -1 or 1)
 
@@ -1585,28 +1606,28 @@ end
 
 function receivePlaneswalkerClickSlot1 (tar, ply, alt)
     local dataTable = GetClickdataTable(tar, ply, alt)
-    dataTable.varName = "genericCount"
+    dataTable.varName = "namedCounters"
     dataTable.varDelta = GetPlaneswalkerAbilityDelta(dataTable, 1)
     PropagateValueChange(dataTable)
 end
 
 function receivePlaneswalkerClickSlot2 (tar, ply, alt)
     local dataTable = GetClickdataTable(tar, ply, alt)
-    dataTable.varName = "genericCount"
+    dataTable.varName = "namedCounters"
     dataTable.varDelta = GetPlaneswalkerAbilityDelta(dataTable, 2)
     PropagateValueChange(dataTable)
 end
 
 function receivePlaneswalkerClickSlot3 (tar, ply, alt)
     local dataTable = GetClickdataTable(tar, ply, alt)
-    dataTable.varName = "genericCount"
+    dataTable.varName = "namedCounters"
     dataTable.varDelta = GetPlaneswalkerAbilityDelta(dataTable, 3)
     PropagateValueChange(dataTable)
 end
 
 function receivePlaneswalkerClickSlot4 (tar, ply, alt)
     local dataTable = GetClickdataTable(tar, ply, alt)
-    dataTable.varName = "genericCount"
+    dataTable.varName = "namedCounters"
     dataTable.varDelta = GetPlaneswalkerAbilityDelta(dataTable, 4)
     PropagateValueChange(dataTable)
 end
@@ -1652,7 +1673,8 @@ function MakeExactCopy (tar, ply, alt)
     enc = Global.getVar('Encoder')
     if enc ~= nil then
         local dataOA = enc.call("APIgetOAData",{obj=tar})
-        local data = enc.call("APIgetObjectData",{obj = tar, propID = pID})
+        local encData = enc.call("APIobjGetPropData",{obj = tar, propID = pID})
+        local data = encData["tyrantUnified"]
         local flip = enc.call("APIgetFlip",{obj=tar})
         local params = {position = tar.getPosition()}
 
@@ -1687,8 +1709,6 @@ function MakeExactCopy (tar, ply, alt)
         copiedCard.setLock(true)
 
         copyCount = copyCount + 1
-
-        local data = enc.call("APIsetObjectData",{obj = tar, propID = pID, data = data})
     
         Timer.create({
             identifier = "exactCopyTimer"..tar.guid..copyCount,
@@ -1710,7 +1730,7 @@ function MakeExactCopy (tar, ply, alt)
 end
 
 function SetExactCopyData (dataTable)
-    dataTable.enc.call("APIaddObject",{obj=dataTable.copiedCard})
+    dataTable.enc.call("APIencodeObject",{obj=dataTable.copiedCard})
     dataTable.enc.call("APIsetOAData",{obj=dataTable.copiedCard, data = dataTable.dataOA})
     dataTable.enc.call("APIrebuildButtons",{obj=dataTable.copiedCard})
 
@@ -1718,9 +1738,12 @@ function SetExactCopyData (dataTable)
 end
 
 function ResetExactCopyOffset (dataTable)
-    local data = dataTable.enc.call("APIgetObjectData",{obj = dataTable.tar, propID = pID})
+    local encData = dataTable.encoder.call("APIobjGetPropData",{obj=tar,propID=pID})
+    local data = encData["tyrantUnified"]
     data.exactCopyOffset = 0
-    dataTable.enc.call("APIsetObjectData",{obj = dataTable.tar, propID = pID, data = data})
+
+    encData["tyrantUnified"] = data
+    dataTable.enc.call("APIobjSetPropData",{obj = dataTable.tar, propID = pID, data = encData})
 end
 
 function GetAmuzetsCardImporter ()
@@ -1839,7 +1862,8 @@ end
 function parseCardData(object, enc)
     local cardData = {{nameLine = "", typeLine = "", textLines = {}, statLine = ""}} -- does this work?
 
-    local data = enc.call("APIgetObjectData",{obj=object,propID=pID})
+    local encData = enc.call("APIobjGetPropData",{obj=object,propID=pID})
+    local data = encData["tyrantUnified"]
 
     if data == nil then
         local dataTable = {obj = object}
@@ -1923,7 +1947,7 @@ function parseCardData(object, enc)
             if value["typeLine"]:find("laneswalker") then -- who knows if that P's gonna be capitalized
                 data.cardFaces[index]["isPlaneswalker"] = true
                 local loyaltyValue = value["statLine"]:match("b%](%d+)%[")
-                if loyaltyValue ~= nil then data.genericCount = tonumber(loyaltyValue) end
+                if loyaltyValue ~= nil then data.namedCounters = tonumber(loyaltyValue) end
                 local pwAbilityCount = 0 --used to count amount of PW abilities vs amount of slots
 
                 --setting PW abilities
@@ -2005,11 +2029,12 @@ function parseCardData(object, enc)
         end
 
         data.displayPowTou = autoActivatePowTou and (cardData[1]["typeLine"]:find("reature") ~= nil)
-        data.hasOtherCounter = hasKeywordOrNamedCounter(cardData[1]["nameLine"], descriptionField) --maybe refactor this to not use the whole field
+        data.hasNonLoyaltyCounter = hasKeywordOrNamedCounter(cardData[1]["nameLine"], descriptionField) --maybe refactor this to not use the whole field
         data.displayPlaneswalkerAbilities = data.cardFaces[1]["pwCount"] > 0
-        data.displayCounters = autoActivateCounter and (data.cardFaces[1].isPlaneswalker or data.hasOtherCounter)
+        data.displayCounters = autoActivateCounter and (data.cardFaces[1].isPlaneswalker or data.hasNonLoyaltyCounter)
 
-        enc.call("APIsetObjectData",{obj=object,propID=pID,data=data})
+        encData["tyrantUnified"] = data
+        enc.call("APIobjSetPropData",{obj = object, propID = pID, data = encData})
     end
 end
 
@@ -2080,18 +2105,19 @@ function TryTimedEncoding(object)
     local enc = Global.getVar('Encoder')
     if enc == nil or autoActivateModule == false then return end
 
-    if enc.call("APIobjectExist",{obj=object}) == false and object.getVar('noencode') == nil then
-        enc.call("APIaddObject",{obj=object})
+    if enc.call("APIobjectExists",{obj=object}) == false and object.getVar('noencode') == nil then
+        --noencode doesn't exist
+        enc.call("APIencodeObject",{obj=object})
     end
 
     if enc.call("APIpropertyExists",{propID = pID}) == false then return end
-
-    if enc.call("APIcheckEnabled", {obj=object, propID = pID}) == false then
-        enc.call("APItoggleProperty",{obj=object, propID = pID})
+    if enc.call("APIobjIsPropEnabled", {obj=object, propID = pID}) == false then
+        enc.call("APIobjEnableProp",{obj=object, propID = pID})
 
         InitializeCardData(object, enc)
 
         enc.call("APIrebuildButtons",{obj=object})
+        broadcastToAll("hello5")
         return
     end
 end
@@ -2102,12 +2128,14 @@ function autoActivate(dataTable)
         if enc.call("APIpropertyExists",{propID = pID}) == false then
             return
         
-        elseif enc.call("APIobjectExist", {obj=dataTable.obj}) ~= nil then
-            local data = enc.call("APIgetObjectData",{obj=dataTable.obj,propID=pID})
+        elseif enc.call("APIobjectExists", {obj=dataTable.obj}) ~= nil then
+            local encData = enc.call("APIobjGetPropData",{obj=dataTable.obj,propID=pID})
+            local data = encData["tyrantUnified"]
+
             if data ~= nil and data.hasStats ~= nil then return data end
 
-            if enc.call("APIcheckEnabled", {obj=dataTable.obj, propID = pID}) == false then
-                enc.call("APItoggleProperty",{obj=dataTable.obj, propID = pID})
+            if enc.call("APIobjIsPropEnabled", {obj=dataTable.obj, propID = pID}) == false then
+                enc.call("APIobjEnableProp",{obj=dataTable.obj, propID = pID})
 
                 parseCardData(dataTable.obj, enc)
 
@@ -2128,12 +2156,14 @@ function TryAssignOwnership(object, enc)
     local ownerColor = cardTable.ownerColor ~= "" and cardTable.ownerColor or (cardTable.containerID ~= "" and deckPlayerPairs[cardTable.containerID] or nil)
 
     if ownerColor ~= nil and ownerColor  ~= "" then
-        local data = enc.call("APIgetObjectData",{obj = object, propID = pID})
+        local encData = enc.call("APIobjGetPropData",{obj = object, propID = pID})
+        local data = encData["tyrantUnified"]
 
         data.ownerColor = ownerColor
         data.controllerColor = ownerColor
 
-        enc.call("APIsetObjectData",{obj = object, propID = pID, data = data})
+        encData["tyrantUnified"] = data
+        enc.call("APIobjSetPropData",{obj = object, propID = pID, data = encData})
     end
 end
 
