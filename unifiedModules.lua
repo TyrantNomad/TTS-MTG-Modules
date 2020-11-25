@@ -1460,6 +1460,7 @@ function UpdateEncoderDataValue (dataTable)
     end
 
     encData["tyrantUnified"] = objectData
+    --dataTable.encoder.call("APIobjSetValueData", {obj = dataTable.target, valueID = "tyrantUnified", data = objectData})
     dataTable.encoder.call("APIobjSetPropData",{obj = dataTable.target, propID = pID, data = encData})
     --enc.call("APIobjSetPropData",{obj=obj,propID=pID,data=data})
     enc.call("APIrebuildButtons",{obj = dataTable.target})
@@ -1596,9 +1597,10 @@ function receiveTenCounterClick(tar,ply,alt)
 end
 
 function GetPlaneswalkerAbilityDelta (dataTable, index)
-    local encData = dataTable.encoder.call("APIobjGetPropData",{obj=tar,propID=pID})
+    local encData = dataTable.encoder.call("APIobjGetPropData",{obj = dataTable.target, propID = pID})
     local data = encData["tyrantUnified"]
-    dataTable.varDelta = data.cardData[data.activeFace]["pwAbilities"][index]["abilityDelta"]
+    
+    dataTable.varDelta = data.cardFaces[data.activeFace]["pwAbilities"][index]["abilityDelta"]
     dataTable.varDelta = (type(dataTable.varDelta) == "number" and dataTable.varDelta or -1) * (dataTable.alt_click and -1 or 1)
 
     return dataTable.varDelta
@@ -1672,7 +1674,8 @@ function MakeExactCopy (tar, ply, alt)
     --based on Exact Copy by Tipsy Hobbit (steamid: 13465982)
     enc = Global.getVar('Encoder')
     if enc ~= nil then
-        local dataOA = enc.call("APIgetOAData",{obj=tar})
+        local valueData = enc.call("APIobjGetAllData",{obj = tar})
+        local moduleData = enc.call("APIobjGetProps", {obj = tar})
         local encData = enc.call("APIobjGetPropData",{obj = tar, propID = pID})
         local data = encData["tyrantUnified"]
         local flip = enc.call("APIgetFlip",{obj=tar})
@@ -1681,7 +1684,10 @@ function MakeExactCopy (tar, ply, alt)
         
         local horizontalOffsetMultiplier = data.exactCopyOffset % 5 + 1
         local verticalOffsetMultiplier = math.floor(data.exactCopyOffset/5)
+
         data.exactCopyOffset = data.exactCopyOffset + 1
+        encData["tyrantUnified"] = data
+        enc.call("APIobjSetPropData", {obj = tar, propID = pID, data = encData})
 
         local cardRight = tar.getTransformRight()
         local cardForward = tar.getTransformForward()
@@ -1714,7 +1720,7 @@ function MakeExactCopy (tar, ply, alt)
             identifier = "exactCopyTimer"..tar.guid..copyCount,
             function_name = "SetExactCopyData",
             function_owner = self,
-            parameters = {copiedCard = copiedCard, dataOA = dataOA, enc = enc},
+            parameters = {copiedCard = copiedCard, valueData = valueData, moduleData = moduleData, enc = enc},
             delay = 0.2
         })
         
@@ -1731,14 +1737,15 @@ end
 
 function SetExactCopyData (dataTable)
     dataTable.enc.call("APIencodeObject",{obj=dataTable.copiedCard})
-    dataTable.enc.call("APIsetOAData",{obj=dataTable.copiedCard, data = dataTable.dataOA})
+    dataTable.enc.call("APIobjSetAllData",{obj=dataTable.copiedCard, data = dataTable.valueData})
+    dataTable.enc.call("APIobjSetProps",{obj=dataTable.copiedCard, data = dataTable.moduleData})
     dataTable.enc.call("APIrebuildButtons",{obj=dataTable.copiedCard})
 
     dataTable.copiedCard.setLock(false)
 end
 
 function ResetExactCopyOffset (dataTable)
-    local encData = dataTable.encoder.call("APIobjGetPropData",{obj=tar,propID=pID})
+    local encData = dataTable.enc.call("APIobjGetPropData",{obj = dataTable.tar, propID = pID})
     local data = encData["tyrantUnified"]
     data.exactCopyOffset = 0
 
@@ -2117,7 +2124,6 @@ function TryTimedEncoding(object)
         InitializeCardData(object, enc)
 
         enc.call("APIrebuildButtons",{obj=object})
-        broadcastToAll("hello5")
         return
     end
 end
