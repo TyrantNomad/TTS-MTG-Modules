@@ -1,4 +1,4 @@
-moduleVersion = 2.15
+moduleVersion = 2.16
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -354,23 +354,23 @@ function onChat(message, player)
 
     if string.find(message, 'auto') ~= nil then
         --multi-setting supported ex 'auto powtou counter plusone off' should set all 3
-        local targetState = message:find('%son') and true or (message:find('off') and false or nil)
+        local targetState = message:find('%son') and true or (message:find('%soff') == nil and nil or false)
         if targetState == nil then return end
 
         local changedAnything = false
         if message:find('powtou') then
             autoActivatePowTou = targetState
-            local changedAnything = true
+            changedAnything = true
         end
 
         if message:find('plusone') then
             autoActivatePlusOne = targetState
-            local changedAnything = true
+            changedAnything = true
         end
 
         if message:find('counter') then
             autoActivateCounter = targetState
-            local changedAnything = true
+            changedAnything = true
         end
 
         if changedAnything then BroadcastSettings() end
