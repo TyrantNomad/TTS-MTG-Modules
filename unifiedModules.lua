@@ -1,4 +1,4 @@
-moduleVersion = 2.1
+moduleVersion = 2.12
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -21,13 +21,11 @@ end
 
 function SelfUpdateCheck(webRequest)
     local gitVersion = tonumber(webRequest.text:match('moduleVersion%s=%s(%d+%.%d+)'))
-    broadcastToAll(gitVersion)
 
-    if gitVersion ~= nil then
-        if gitVersion > moduleVersion then
-            self.script_code = webRequest.text
-            self.reload()
-        end
+    if gitVersion ~= nil and gitVersion > moduleVersion then
+        broadcastToAll("[888888][EASY MODULES][-] Updating from "..moduleVersion.." to "..gitVersion)
+        self.script_code = webRequest.text
+        self.reload()
     end
 end
 
@@ -56,6 +54,7 @@ function tryAutoRegister(data)
         registerModule()
     else
         local dataTable = {recursiveCall=true}
+        Timer.destroy("unifiedModuleAutoRegister")
         Timer.create({
             identifier = "unifiedModuleAutoRegister",
             function_name = "tryAutoRegister",
@@ -217,7 +216,7 @@ function createModuleChipButtons()
 
     self.createButton({
         label = "AUTO "..(autoActivateModule and "ON" or "OFF"),
-        tooltip = "When ON, automatically activates the module,\nshowing the easy-toggle menu on the left side of cards",
+        tooltip = "When ON, automatically activates the module, showing the easy-toggle menu on the left side of cards",
 
         click_function = "toggleAutoActivate",
         function_owner = self,
@@ -312,6 +311,9 @@ function registerModule()
         }
         enc.call("APIregisterValue",value)
 
+        BroadcastSettings()
+        broadcastToAll("Type [FFCC00]'modules help'[-] to list commands")
+
         refreshModuleChipButtons()
     else
         broadcastToAll("[888888][EASY MODULES][-]\nNo encoder found. You need [FFCC00]Encoder v3.18+ by Tipsy Hobbit (steamid: 13465982)[-] to use the module")
@@ -323,27 +325,84 @@ function onChat(message, player)
     local message = string.lower(message)
 
     if string.find(message,'force encoder') ~= nil then
-        if string.find (message,'encoder update') ~= nil then
+        if string.find (message,'update') ~= nil then
             WebRequest.get("https://raw.githubusercontent.com/Jophire/Tabletop-Simulator-Workshop-Items/master/Encoder/Encoder%20Core.lua", self, "forceEncoderUpdate")
-        elseif string.find (message,'encoder temporary') ~= nil then
+        elseif string.find (message,'temporary') ~= nil then
             WebRequest.get("https://raw.githubusercontent.com/Jophire/Tabletop-Simulator-Workshop-Items/master/Encoder/Encoder%20Core.lua", self, "forcePlaceholderEncoder")
+        elseif string.find (message, 'reload') ~= nil then
+            enc = Global.getVar("Encoder")
+            if enc ~= nil then 
+                BroadcastToAll("Reloading Encoder object")
+                enc.reload()
+            end
         end
     end
     
     if string.find(message, 'force importer') ~= nil then
-        if string.find (message, 'importer update') ~= nil then
+        if string.find (message, 'update') ~= nil then
             WebRequest.get("https://raw.githubusercontent.com/Amuzet/Tabletop-Simulator-Scripts/master/Magic/Importer.lua", self, "forceImporterUpdate")
-        elseif string.find (message, 'importer temporary') ~= nil then
+        elseif string.find (message, 'temporary') ~= nil then
             WebRequest.get("https://raw.githubusercontent.com/Amuzet/Tabletop-Simulator-Scripts/master/Magic/Importer.lua", self, "forcePlaceholderImporter")
+        elseif string.find (message, 'reload') ~= nil then
+
         end
     end
+
+    if string.find(message, 'auto') ~= nil then
+        --multi-setting supported ex 'auto powtou counter plusone off' should set all 3
+        local targetState = message:find('%son') and true or (message:find('off') and false or nil)
+        if targetState == nil then return end
+
+        local changedAnything = false
+        if message:find('powtou') then
+            autoActivatePowTou = targetState
+            local changedAnything = true
+        end
+
+        if message:find('plusone') then
+            autoActivatePlusOne = targetState
+            local changedAnything = true
+        end
+
+        if message:find('counter') then
+            autoActivateCounter = targetState
+            local changedAnything = true
+        end
+
+        if changedAnything then BroadcastSettings() end
+    end
+
+    if string.find(message, 'module') ~= nil then
+        if message:find('help') then BroadcastCommands() end
+        if message:find('setting') then BroadcastSettings() end
+    end
+end
+
+function BroadcastSettings()
+    broadcastToAll("[888888][EASY MODULES][-] - Current Auto-activation Settings:")
+
+    autoCounterText = autoActivateCounter and "[FFCC00]ON[-]" or "[BBBBBB]OFF[-]"
+    autoPowTouText = autoActivatePowTou and "[FFCC00]ON[-]" or "[BBBBBB]OFF[-]"
+    autoPlusOneText = autoActivatePlusOne and "[FFCC00]ON[-]" or "[BBBBBB]OFF[-]"
+
+    broadcastToAll("Auto PowTou "..autoPowTouText.."     ".."Auto PlusOne "..autoPlusOneText.."     ".."Auto Counter "..autoCounterText)
+end
+
+function BroadcastCommands()
+    broadcastToAll("[888888][EASY MODULES][-] Command List")
+    broadcastToAll("'force encoder/importer reload'[888888] - Reloads the object, use if they stop working")
+    broadcastToAll("'force encoder/importer update'[888888] - Replaces object script with most recent release")
+    broadcastToAll("'force encoder/importer temporary'[888888] - Creates a placeholder object with that script")
+    broadcastToAll("'auto powtow/plusone/counter on/off'[888888] - Changes auto-activation settings")
+    broadcastToAll("''modules settings'[888888] - Shows the current auto-activation settings")
+    broadcastToAll("''modules help'[888888] - Spams chat with 8 lines of text")
+    broadcastToAll("[888888]Commands will trigger if the words are anywhere in the message[-]")
 end
 
 function toggleAutoActivate()
     autoActivateModule = not autoActivateModule
     refreshModuleChipButtons()
 end
-
 
 function createButtons(t)
     enc = Global.getVar('Encoder')
@@ -392,40 +451,48 @@ function createButtons(t)
             multiSelectTooltip..
             "CONTROLLER: ["..controlColorHex.."]"..cardController.."[-]\n"..
             "OWNER: ["..ownerColorHex.."]"..cardOwner.."[-]\n\n"..
-            hexTooltipLowlight.."L-Click: Become CONTROLLER\n"..
-            "R-Click: Become OWNER[-]"
+            hexTooltipMidlight.."Click to become CONTROLLER[-]\n"..
+            hexTooltipLowlight.."R-Click: Become OWNER[-]\n\n"..
+            hexTooltipHighlight.."Button Below:[-]"..hexTooltipMidlight.." Toggle Ownership Gem"
         
         local buttonTooltipCounterSingleClick = 
             multiSelectTooltip..
-            hexTooltipLowlight.."L-Click: +1      R-Click: -1[-]\n"..
+            "Adds 1"..hexTooltipMidlight.." to the counter[-]\n"..
+            hexTooltipMidlight.."R-Click: "..hexTooltipLowlight.."Subtracts 1 instead[-]\n\n"..
             hexTooltipHighlight.."Button Below:[-]"..hexTooltipMidlight.." Add/Subtract 10[-]"
          
         local buttonTooltipCounterTenClick = 
             multiSelectTooltip..
-            hexTooltipLowlight.."L-Click: +10     R-Click: -10[-]"
+            "Adds 10"..hexTooltipMidlight.." to the counter[-]\n"..
+            hexTooltipMidlight.."R-Click: "..hexTooltipLowlight.."Subtracts 10 instead[-]"
 
         local buttonTooltipPowerSingleClick = 
             multiSelectTooltip..
-            hexTooltipLowlight.."L-Click: +1     R-Click: -1[-]\n"..
+            "Adds 1"..hexTooltipMidlight.." to Power[-]\n"..
+            hexTooltipMidlight.."R-Click: "..hexTooltipLowlight.."Subtracts 1 instead[-]\n\n"..
             hexTooltipHighlight.."Button Below:[-]"..hexTooltipMidlight.." Add/Subtract BOTH[-]"
 
         local buttonTooltipToughnessSingleClick = 
             multiSelectTooltip..
-            hexTooltipLowlight.."L-Click: +1     R-Click: -1[-]\n"..
+            "Adds 1"..hexTooltipMidlight.." to Toughness[-]\n"..
+            hexTooltipMidlight.."R-Click: "..hexTooltipLowlight.."Subtracts 1 instead[-]\n\n"..
             hexTooltipHighlight.."Button Below:[-]"..hexTooltipMidlight.." Add/Subtract BOTH[-]"
 
         local buttonTooltipPowTouSingleClick = 
             multiSelectTooltip..
-            hexTooltipLowlight.."L-Click: +1/+1     R-Click: -1/-1[-]"
+            "Adds 1/1"..hexTooltipMidlight.." to Power/Toughness[-]\n"..
+            hexTooltipMidlight.."R-Click: "..hexTooltipLowlight.."Subtracts 1/1 instead[-]"
 
         local buttonTooltipPlusOneSingleClick = 
             multiSelectTooltip..
-            hexTooltipLowlight.."L-Click: +1/+1      R-Click: -1/-1[-]\n"..
+            "Adds a +1/+1"..hexTooltipMidlight.." to counters[-]\n"..
+            hexTooltipMidlight.."R-Click: "..hexTooltipLowlight.."Subtracts instead[-]\n\n"..
             hexTooltipHighlight.."Button Above:[-]"..hexTooltipMidlight.." Add/Subtract 10[-]"
          
         local buttonTooltipPlusOneTenClick = 
             multiSelectTooltip..
-            hexTooltipLowlight.."L-Click: +10/+10     R-Click: -10/-10[-]"
+            "Adds +10/+10"..hexTooltipMidlight.." to counters[-]\n"..
+            hexTooltipMidlight.."R-Click: "..hexTooltipLowlight.."Subtracts instead[-]"
 
         local buttonTooltipToggleDisplayCounters =
             multiSelectTooltip..
@@ -445,12 +512,15 @@ function createButtons(t)
             hexTooltipLowlight.."Toggles Power/Toughness on the card"
         local buttonTooltipToggleDisplayOwnership =
             multiSelectTooltip..
-            hexTooltipHighlight..(data.displayOwnership == true and "HIDE" or "SHOW").."[-]"..hexTooltipMidlight.." OWN & CONTROL\n"..
+            hexTooltipHighlight..(data.displayOwnership == true and "HIDE" or "SHOW").."[-]"..hexTooltipMidlight.." OWNERSHIP GEM\n"..
             hexTooltipLowlight.."Toggles Ownership Gem on the card"
         local buttonTooltipExactCopy =
             singleSelectTooltip..
-            hexTooltipHighlight.."EXACT COPY[-]"..hexTooltipMidlight.." (SPAM-CLICKABLE)[-]\n"..
-            hexTooltipMidlight.."Spawns an exact copy of this card including its encoder data[-]"
+            hexTooltipHighlight.."EXACT COPY[-]"..hexTooltipLowlight.." (SPAM-CLICKABLE)[-]\n"..
+            hexTooltipMidlight.."Spawns an exact copy of this card including its encoder data[-]\n\n"..
+            hexTooltipMidlight.."R-Click: "..hexTooltipLowlight.."Spawn a regular copy instead"
+        local buttonPlaneswalkerAbilityRightClick =
+            hexTooltipMidlight.."\n\nR-Click: "..hexTooltipLowlight.."Reverse Loyalty cost"
 
         local buttonTooltipReImport =
             singleSelectTooltip..
@@ -477,20 +547,20 @@ function createButtons(t)
 
         local buttonTooltipFlipDFC =
             singleSelectTooltip..
-            hexTooltipMidlight.."L-Click: [-]".."[FFFFFF]FLIP TO [-]"..hexTooltipHighlight..(activeFace == 1 and "BACK" or "FRONT").."[-] FACE\n"..
+            "[FFFFFF]FLIP TO [-]"..hexTooltipHighlight..(activeFace == 1 and "BACK" or "FRONT").."[-] FACE\n"..
             hexTooltipLowlight.."Flip the card and change the active face\n\n"..
             hexTooltipMidlight.."R-CLICK:\n[-]"..
             hexTooltipLowlight.."Changes active face without flipping[-]"
         
         local buttonTooltipFlipDFCbackless =
-            hexTooltipRedlight.."NO BACK FACE IMAGE FOUND"..
-            hexTooltipMidlight.."L-Click: [-]"..hexTooltipHighlight.."Reimport card \n\n"..
+            hexTooltipRedlight.."NO BACK FACE IMAGE FOUND[-]\n"..
+            "Click to reimport card \n\n"..
             hexTooltipMidlight.."R-CLICK:\n[-]"..
             hexTooltipLowlight.."Change active face without flipping[-]"
         
         local buttonTooltipFlipDFColdImport =
-            hexTooltipRedlight.."BAD DATA - REIMPORT REQUIRED\n"..
-            hexTooltipMidlight.."L-Click: [-]"..hexTooltipHighlight.."Reimport card \n\n"..
+            hexTooltipRedlight.."BAD DATA - REIMPORT REQUIRED[-]\n"..
+            "Click to reimport card \n\n"..
             hexTooltipMidlight.."R-CLICK:\n[-]"..
             hexTooltipLowlight.."Change active face without flipping[-]"
         
@@ -820,7 +890,7 @@ function createButtons(t)
     
                             t.obj.createButton({
                                 label = isNeutralAbility and "■" or "☗",
-                                tooltip = pwAbilityTooltip,
+                                tooltip = pwAbilityTooltip..buttonPlaneswalkerAbilityRightClick,
                 
                                 click_function='receivePlaneswalkerClickSlot'..index,
                                 function_owner=self,
@@ -957,7 +1027,7 @@ function createButtons(t)
                     (statVerticalOffset + loyaltyOffset)*scaler.y
                 },
 
-                rotation={0,0,-90-90*flip}
+                rotation={0,0,90-90*flip}
             })
 
             --powtou BG right
@@ -1210,7 +1280,7 @@ function createButtons(t)
                 {
                     0,
                     0.35*flip*scaler.z,
-                    0.23 + verticalOffset
+                    0.13 + verticalOffset
                 },
 
                 height= 80,
@@ -1691,13 +1761,10 @@ function MakeExactCopy (tar, ply, alt)
     --based on Exact Copy by Tipsy Hobbit (steamid: 13465982)
     enc = Global.getVar('Encoder')
     if enc ~= nil then
-        local valueData = enc.call("APIobjGetAllData",{obj = tar})
-        local moduleData = enc.call("APIobjGetProps", {obj = tar})
         local encData = enc.call("APIobjGetPropData",{obj = tar, propID = pID})
         local data = encData["tyrantUnified"]
         local flip = enc.call("APIgetFlip",{obj=tar})
         local params = {position = tar.getPosition()}
-
         
         local horizontalOffsetMultiplier = data.exactCopyOffset % 5 + 1
         local verticalOffsetMultiplier = math.floor(data.exactCopyOffset/5)
@@ -1729,17 +1796,22 @@ function MakeExactCopy (tar, ply, alt)
         params.position[3] = params.position[3] + zOffset
 
         local copiedCard = tar.clone(params)
-        copiedCard.setLock(true)
-
         copyCount = copyCount + 1
-    
-        Timer.create({
-            identifier = "exactCopyTimer"..tar.guid..copyCount,
-            function_name = "SetExactCopyData",
-            function_owner = self,
-            parameters = {copiedCard = copiedCard, valueData = valueData, moduleData = moduleData, enc = enc},
-            delay = 0.2
-        })
+
+        --alt click for regular copy
+        if alt == false then
+            copiedCard.setLock(true)
+            local moduleData = enc.call("APIobjGetProps", {obj = tar})
+            local valueData = enc.call("APIobjGetAllData",{obj = tar})
+        
+            Timer.create({
+                identifier = "exactCopyTimer"..tar.guid..copyCount,
+                function_name = "SetExactCopyData",
+                function_owner = self,
+                parameters = {copiedCard = copiedCard, valueData = valueData, moduleData = moduleData, enc = enc},
+                delay = 0.2
+            })
+        end
         
         Timer.destroy("resetExactCopyOffset"..tar.guid)
         Timer.create({
@@ -1985,7 +2057,7 @@ function parseCardData(object, enc)
                         abilityDelta = abilityDelta:find("[xX]+") ~= nil and "X" or tonumber(abilityDelta)
                     end
 
-                    local abilityText = tooltipIndex ~= nil and innerValue:sub(tooltipIndex + 2) or innerValue
+                    local abilityText = tooltipIndex ~= nil and innerValue:sub(tooltipIndex + 3) or innerValue
                     data.cardFaces[index]["pwAbilities"][innerIndex] = {abilityDelta = abilityDelta, abilityText = abilityText}
                     data.cardFaces[index]["pwCount"] = data.cardFaces[index]["pwCount"] + 1
                 end
