@@ -1,4 +1,4 @@
-moduleVersion = 2.14
+moduleVersion = 2.15
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -347,7 +347,8 @@ function onChat(message, player)
         elseif string.find (message, 'temporary') ~= nil then
             WebRequest.get("https://raw.githubusercontent.com/Amuzet/Tabletop-Simulator-Scripts/master/Magic/Importer.lua", self, "ForcePlaceholderImporter")
         elseif string.find (message, 'reload') ~= nil then
-
+            local amuzetCardImporter = GetAmuzetsCardImporter()
+            amuzetCardImporter.reload()
         end
     end
 
@@ -997,14 +998,14 @@ function createButtons(t)
                 {
                     (statHorizontalOffset)*flip*scaler.x,
                     0.35*flip*scaler.z,
-                    0.23 + (statVerticalOffset + loyaltyOffset)*scaler.y
+                    0.21 + (statVerticalOffset + loyaltyOffset)*scaler.y
                 },
 
                 height= 60,
                 width= horizontalSize-40,
                 color = {0.3,0.3,0.3, 0.3},
 
-                scale = {1,1,0.7},
+                scale = {1,1,0.5},
 
                 rotation={0,0,90-90*flip}
             })
