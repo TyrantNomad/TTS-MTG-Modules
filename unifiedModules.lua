@@ -1,18 +1,34 @@
+moduleVersion = 2.1
+pID = "_MTG_Simplified_UNIFIED"
+
 --Easy Modules Unified
 --by @TyrantNomad
 --based on Power and Toughness by Tipsy Hobbit (steamid: 13465982)
 
-moduleVersion = "2.0"
-pID = "_MTG_Simplified_UNIFIED"
-
 isRegistered = false
 
+unifiedGithubLink = "https://raw.githubusercontent.com/TyrantNomad/TTS-MTG-Modules/master/unifiedModules.lua"
+
 function onload(saved_data)
+    WebRequest.get("https://raw.githubusercontent.com/TyrantNomad/TTS-MTG-Modules/master/unifiedModules.lua", self, "SelfUpdateCheck")
+
     local dataTable = {recursiveCall=false}
     processSavedData(saved_data)
     initializeDeckTables()
     tryAutoRegister(dataTable)
     createModuleChipButtons()
+end
+
+function SelfUpdateCheck(webRequest)
+    local gitVersion = tonumber(webRequest.text:match('moduleVersion%s=%s(%d+%.%d+)'))
+    broadcastToAll(gitVersion)
+
+    if gitVersion ~= nil then
+        if gitVersion > moduleVersion then
+            self.script_code = webRequest.text
+            self.reload()
+        end
+    end
 end
 
 function onSave()
@@ -235,7 +251,8 @@ function registerModule()
 
     local enc = Global.getVar('Encoder')
     if enc ~= nil then
-        if tonumber(enc.getVar("version")) < 4.2 then 
+        encVersion = enc.getVar("version"):match("%d+%.%d+")
+        if tonumber(encVersion) < 4.2 then 
             broadcastToAll("[888888][EASY MODULES][-]\nEncoder version too old. To use this module, manually upgrade it to v3.18+ or type 'force encoder update' to attempt a forced update")
             return
         end
@@ -1762,7 +1779,7 @@ function GetAmuzetsCardImporter ()
         local amuzetCardImporter = encoderToolTable["Card Importer"].funcOwner
 
         local importerVersion = tonumber(string.match(amuzetCardImporter.getVar("version"),"%d+%.%d*"))
-        if importerVersion < 1.9 then
+        if importerVersion < 1.901 then
             broadcastToAll ("[888888][EASY MODULES][-]\nUnsupported Card Importer version found, version 1.9 or newer is required")
             broadcastToAll ("[888888][EASY MODULES][-]\nType [FFCC00]'force importer update'[-] to update your Card Importer or get the new one from the Steam Workshop")
             return
