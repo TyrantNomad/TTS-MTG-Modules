@@ -1,4 +1,4 @@
-moduleVersion = 2.12
+moduleVersion = 2.13
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -10,17 +10,18 @@ isRegistered = false
 unifiedGithubLink = "https://raw.githubusercontent.com/TyrantNomad/TTS-MTG-Modules/master/unifiedModules.lua"
 
 function onload(saved_data)
-    WebRequest.get("https://raw.githubusercontent.com/TyrantNomad/TTS-MTG-Modules/master/unifiedModules.lua", self, "SelfUpdateCheck")
-
     local dataTable = {recursiveCall=false}
     processSavedData(saved_data)
     initializeDeckTables()
     tryAutoRegister(dataTable)
     createModuleChipButtons()
+    
+    WebRequest.get("https://raw.githubusercontent.com/TyrantNomad/TTS-MTG-Modules/master/unifiedModules.lua", self, "SelfUpdateCheck")
 end
 
 function SelfUpdateCheck(webRequest)
     local gitVersion = tonumber(webRequest.text:match('moduleVersion%s=%s(%d+%.%d+)'))
+    broadcastToAll(gitVersion.."  "..moduleVersion)
 
     if gitVersion ~= nil and gitVersion > moduleVersion then
         broadcastToAll("[888888][EASY MODULES][-] Updating from "..moduleVersion.." to "..gitVersion)
