@@ -1,30 +1,29 @@
-moduleVersion = 2.13
+moduleVersion = 2.14
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
 --by @TyrantNomad
---based on Power and Toughness by Tipsy Hobbit (steamid: 13465982)
+--built around the Encoder by Tipsy Hobbit (steamid: 13465982)
+--using functions from Importer by Amuzet (steamid: 42755365)
 
 isRegistered = false
 
 unifiedGithubLink = "https://raw.githubusercontent.com/TyrantNomad/TTS-MTG-Modules/master/unifiedModules.lua"
 
 function onload(saved_data)
-    local dataTable = {recursiveCall=false}
-    processSavedData(saved_data)
-    initializeDeckTables()
-    tryAutoRegister(dataTable)
-    createModuleChipButtons()
-    
     WebRequest.get("https://raw.githubusercontent.com/TyrantNomad/TTS-MTG-Modules/master/unifiedModules.lua", self, "SelfUpdateCheck")
-end
+
+    local dataTable = {recursiveCall=false}
+    ProcessSavedData(saved_data)
+    InitializeDeckTables()
+    TryAutoRegister(dataTable)
+    CreateModuleChipButtons()
+ end
 
 function SelfUpdateCheck(webRequest)
     local gitVersion = tonumber(webRequest.text:match('moduleVersion%s=%s(%d+%.%d+)'))
-    broadcastToAll(gitVersion.."  "..moduleVersion)
 
     if gitVersion ~= nil and gitVersion > moduleVersion then
-        broadcastToAll("[888888][EASY MODULES][-] Updating from "..moduleVersion.." to "..gitVersion)
         self.script_code = webRequest.text
         self.reload()
     end
@@ -40,7 +39,7 @@ autoActivateModule = true
 autoActivateCounter = true
 autoActivatePowTou = true
 autoActivatePlusOne = true
-function processSavedData(saved_data)
+function ProcessSavedData(saved_data)
     if saved_data ~= nil and saved_data ~= "" then
         local loaded_data = JSON.decode(saved_data)
         autoActivateModule = loaded_data.autoActivateModule ~= nil and loaded_data.autoActivateModule or true
@@ -50,23 +49,23 @@ function processSavedData(saved_data)
     end
 end
 
-function tryAutoRegister(data)
+function TryAutoRegister(data)
     if data.recursiveCall then
-        registerModule()
+        RegisterModule()
     else
         local dataTable = {recursiveCall=true}
         Timer.destroy("unifiedModuleAutoRegister")
         Timer.create({
             identifier = "unifiedModuleAutoRegister",
-            function_name = "tryAutoRegister",
+            function_name = "TryAutoRegister",
             function_owner = self,
             parameters = dataTable,
-            delay = 3
+            delay = 2
         })
     end
 end
 
-function forceEncoderUpdate(placeholderCode)
+function ForceEncoderUpdate(placeholderCode)
     local placeholderCode = placeholderCode.text
 
     local encoder = Global.getVar('Encoder')
@@ -75,11 +74,11 @@ function forceEncoderUpdate(placeholderCode)
         encoder.reload()
 
         local dataTable = {recursiveCall=false}
-        tryAutoRegister(dataTable)
+        TryAutoRegister(dataTable)
     else broadcastToAll("[888888][EASY MODULES][-]\nFailed to find Encoder to update") end
 end
 
-function forceImporterUpdate(placeholderCode)
+function ForceImporterUpdate(placeholderCode)
     local placeholderCode = placeholderCode.text
 
     local encoder = Global.getVar('Encoder')
@@ -91,7 +90,7 @@ function forceImporterUpdate(placeholderCode)
     else broadcastToAll("[888888][EASY MODULES][-]\nFailed to find Card Importer to update") end
 end
 
-function forcePlaceholderDependency(placeholderCode, moduleName)
+function ForcePlaceholderDependency(placeholderCode, moduleName)
     local placeholderCode = placeholderCode.text
     spawnParams = {
         type = "reversi_chip",
@@ -100,29 +99,29 @@ function forcePlaceholderDependency(placeholderCode, moduleName)
         position = {0, 5, 0},
         scale = {4, 32, 4},
         sound = false,
-        callback_function = function(obj) attachCodeToPlaceholder(obj, placeholderCode) end
+        callback_function = function(obj) AttachCodeToPlaceholder(obj, placeholderCode) end
     }
 
     spawnObject(spawnParams)
 end
 
-function forcePlaceholderEncoder(placeholderCode)
-    forcePlaceholderDependency(placeholderCode, "Encoder")
+function ForcePlaceholderEncoder(placeholderCode)
+    ForcePlaceholderDependency(placeholderCode, "Encoder")
 
     local dataTable = {recursiveCall=false}
-    tryAutoRegister(dataTable)
+    TryAutoRegister(dataTable)
 end
 
-function forcePlaceholderImporter(placeholderCode)
-    forcePlaceholderDependency(placeholderCode, "Card Importer")
+function ForcePlaceholderImporter(placeholderCode)
+    ForcePlaceholderDependency(placeholderCode, "Card Importer")
 end
 
-function attachCodeToPlaceholder (placeholderObject, placeholderCode)
+function AttachCodeToPlaceholder (placeholderObject, placeholderCode)
     placeholderObject.script_code = placeholderCode
     placeholderObject.reload()
 end
 
-function createModuleChipButtons()
+function CreateModuleChipButtons()
     local enc = Global.getVar('Encoder')
     if enc ~= nil then
         isRegistered = enc.call("APIpropertyExists",{propID = pID})
@@ -132,7 +131,7 @@ function createModuleChipButtons()
 
     self.createButton({
         label = "TyrantNomad's",
-        click_function=("doNothing"),
+        click_function=("DoNothing"),
         function_owner=self,
 
         position={0,0.15,-0.4},
@@ -146,7 +145,7 @@ function createModuleChipButtons()
     })
 
     self.createButton({
-        click_function="doNothing",
+        click_function="DoNothing",
         function_owner=self,
         position={0,0.15,-0.155},
         rotation={180,0,0},
@@ -159,7 +158,7 @@ function createModuleChipButtons()
 
     self.createButton({
         label= "EASY MODULES",
-        click_function="doNothing",
+        click_function="DoNothing",
         function_owner=self,
         position={0,0.15,-0.155},
 
@@ -174,7 +173,7 @@ function createModuleChipButtons()
 
     self.createButton({
         label = "VERSION "..moduleVersion,
-        click_function=("doNothing"),
+        click_function=("DoNothing"),
         function_owner=self,
 
         position={0,0.15,0.075},
@@ -189,7 +188,7 @@ function createModuleChipButtons()
 
     self.createButton({
         label=(isRegistered and "REGISTERED" or "ADD MODULE"),
-        click_function="doNothing",
+        click_function="DoNothing",
         function_owner=self,
 
         position={0,0.15,0.33},
@@ -202,7 +201,7 @@ function createModuleChipButtons()
     })
 
     self.createButton({
-        click_function=(isRegistered and "doNothing" or "registerModule"),
+        click_function=(isRegistered and "DoNothing" or "RegisterModule"),
         function_owner=self,
 
         position={0,0.15,0.33},
@@ -219,7 +218,7 @@ function createModuleChipButtons()
         label = "AUTO "..(autoActivateModule and "ON" or "OFF"),
         tooltip = "When ON, automatically activates the module, showing the easy-toggle menu on the left side of cards",
 
-        click_function = "toggleAutoActivate",
+        click_function = "ToggleAutoActivate",
         function_owner = self,
 
         font_color = (autoActivateModule and {1,156/255,196/255} or {90/255,24/255,51/255}),
@@ -234,20 +233,23 @@ function createModuleChipButtons()
     })
 end
 
-function clearModuleChipButtons()
+function ClearModuleChipButtons()
     local chipButtons = self.getButtons()
     for index,button in pairs(chipButtons) do
         self.removeButton(index -1)
     end
 end
 
-function refreshModuleChipButtons()
-    clearModuleChipButtons()
-    createModuleChipButtons()
+function RefreshModuleChipButtons()
+    ClearModuleChipButtons()
+    CreateModuleChipButtons()
 end
 
-function registerModule()
-    if isRegistered then return end
+--external auto-registration compatibility
+function registerModule() RegisterModule() end
+function RegisterModule()
+    --better to always try to register in case of object reloading
+    --if isRegistered then return end
 
     local enc = Global.getVar('Encoder')
     if enc ~= nil then
@@ -315,7 +317,7 @@ function registerModule()
         BroadcastSettings()
         broadcastToAll("Type [FFCC00]'modules help'[-] to list commands")
 
-        refreshModuleChipButtons()
+        RefreshModuleChipButtons()
     else
         broadcastToAll("[888888][EASY MODULES][-]\nNo encoder found. You need [FFCC00]Encoder v3.18+ by Tipsy Hobbit (steamid: 13465982)[-] to use the module")
         broadcastToAll("[888888][EASY MODULES][-]\nGet the Encoder from the Steam Workshop or type [FFCC00]'force encoder temporary'[-] to spawn a placeholder")
@@ -327,9 +329,9 @@ function onChat(message, player)
 
     if string.find(message,'force encoder') ~= nil then
         if string.find (message,'update') ~= nil then
-            WebRequest.get("https://raw.githubusercontent.com/Jophire/Tabletop-Simulator-Workshop-Items/master/Encoder/Encoder%20Core.lua", self, "forceEncoderUpdate")
+            WebRequest.get("https://raw.githubusercontent.com/Jophire/Tabletop-Simulator-Workshop-Items/master/Encoder/Encoder%20Core.lua", self, "ForceEncoderUpdate")
         elseif string.find (message,'temporary') ~= nil then
-            WebRequest.get("https://raw.githubusercontent.com/Jophire/Tabletop-Simulator-Workshop-Items/master/Encoder/Encoder%20Core.lua", self, "forcePlaceholderEncoder")
+            WebRequest.get("https://raw.githubusercontent.com/Jophire/Tabletop-Simulator-Workshop-Items/master/Encoder/Encoder%20Core.lua", self, "ForcePlaceholderEncoder")
         elseif string.find (message, 'reload') ~= nil then
             enc = Global.getVar("Encoder")
             if enc ~= nil then 
@@ -341,9 +343,9 @@ function onChat(message, player)
     
     if string.find(message, 'force importer') ~= nil then
         if string.find (message, 'update') ~= nil then
-            WebRequest.get("https://raw.githubusercontent.com/Amuzet/Tabletop-Simulator-Scripts/master/Magic/Importer.lua", self, "forceImporterUpdate")
+            WebRequest.get("https://raw.githubusercontent.com/Amuzet/Tabletop-Simulator-Scripts/master/Magic/Importer.lua", self, "ForceImporterUpdate")
         elseif string.find (message, 'temporary') ~= nil then
-            WebRequest.get("https://raw.githubusercontent.com/Amuzet/Tabletop-Simulator-Scripts/master/Magic/Importer.lua", self, "forcePlaceholderImporter")
+            WebRequest.get("https://raw.githubusercontent.com/Amuzet/Tabletop-Simulator-Scripts/master/Magic/Importer.lua", self, "ForcePlaceholderImporter")
         elseif string.find (message, 'reload') ~= nil then
 
         end
@@ -380,7 +382,7 @@ function onChat(message, player)
 end
 
 function BroadcastSettings()
-    broadcastToAll("[888888][EASY MODULES][-] - Current Auto-activation Settings:")
+    broadcastToAll("[888888][EASY MODULES][-] v"..moduleVersion.." - Current Auto-activation Settings:")
 
     autoCounterText = autoActivateCounter and "[FFCC00]ON[-]" or "[BBBBBB]OFF[-]"
     autoPowTouText = autoActivatePowTou and "[FFCC00]ON[-]" or "[BBBBBB]OFF[-]"
@@ -400,16 +402,17 @@ function BroadcastCommands()
     broadcastToAll("[888888]Commands will trigger if the words are anywhere in the message[-]")
 end
 
-function toggleAutoActivate()
+function ToggleAutoActivate()
     autoActivateModule = not autoActivateModule
-    refreshModuleChipButtons()
+    RefreshModuleChipButtons()
 end
 
+--external call compatibility casing
 function createButtons(t)
     enc = Global.getVar('Encoder')
 
     if enc ~= nil then
-        parseCardData(t.obj, enc)
+        ParseCardData(t.obj, enc)
         
         local encData = enc.call("APIobjGetPropData",{obj=t.obj,propID=pID})
         local data = encData["tyrantUnified"]
@@ -797,7 +800,7 @@ function createButtons(t)
 
             --bg
             t.obj.createButton({
-                click_function = 'doNothing',
+                click_function = 'DoNothing',
                 function_owner = self,
 
                 height = verticalSize + rimSize,
@@ -820,7 +823,7 @@ function createButtons(t)
                 label=" "..data.namedCounters.." ",
                 tooltip = buttonTooltipCounterSingleClick,
 
-                click_function='receiveCounterClick',
+                click_function='ReceiveCounterClick',
                 function_owner=self,
 
                 position=
@@ -843,7 +846,7 @@ function createButtons(t)
             --delta 10 button
             t.obj.createButton({
                 tooltip = buttonTooltipCounterTenClick,
-                click_function='receiveTenCounterClick',
+                click_function='ReceiveTenCounterClick',
                 function_owner=self,
 
                 position=
@@ -893,7 +896,7 @@ function createButtons(t)
                                 label = isNeutralAbility and "■" or "☗",
                                 tooltip = pwAbilityTooltip..buttonPlaneswalkerAbilityRightClick,
                 
-                                click_function='receivePlaneswalkerClickSlot'..index,
+                                click_function='ReceivePlaneswalkerClickSlot'..index,
                                 function_owner=self,
                 
                                 position =
@@ -918,7 +921,7 @@ function createButtons(t)
                                 label = isNeutralAbility and "■" or "☗",
                                 tooltip = buttonTooltipCounterSingleClick,
                 
-                                click_function='doNothing',
+                                click_function='DoNothing',
                                 function_owner=self,
                 
                                 position =
@@ -943,7 +946,7 @@ function createButtons(t)
                                 label = pwAbilityCost,
                                 tooltip = buttonTooltipCounterSingleClick,
                 
-                                click_function='doNothing',
+                                click_function='DoNothing',
                                 function_owner=self,
                 
                                 position =
@@ -987,7 +990,7 @@ function createButtons(t)
             --powtou increase both button
             t.obj.createButton({
                 tooltip = buttonTooltipPowTouSingleClick,
-                click_function='receivePowTouClick',
+                click_function='ReceivePowTouClick',
                 function_owner=self,
 
                 position=
@@ -1012,7 +1015,7 @@ function createButtons(t)
                 font_color = {1,1,1},
                 font_size= 80,
 
-                click_function = 'doNothing',
+                click_function = 'DoNothing',
                 function_owner = self,
 
                 height = 0,
@@ -1033,7 +1036,7 @@ function createButtons(t)
 
             --powtou BG right
             t.obj.createButton({
-                click_function='doNothing',
+                click_function='DoNothing',
                 function_owner=self,
 
                 position=
@@ -1052,7 +1055,7 @@ function createButtons(t)
 
             --powtou BG left
             t.obj.createButton({
-                click_function='doNothing',
+                click_function='DoNothing',
                 function_owner=self,
 
                 position=
@@ -1074,7 +1077,7 @@ function createButtons(t)
                 label = powerText.." ",
                 tooltip = buttonTooltipPowerSingleClick,
 
-                click_function='receivePowerClick',
+                click_function='ReceivePowerClick',
                 function_owner=self,
 
                 position=
@@ -1099,7 +1102,7 @@ function createButtons(t)
                 label = " "..toughnessText,
                 tooltip = buttonTooltipToughnessSingleClick,
 
-                click_function='receiveToughnessClick',
+                click_function='ReceiveToughnessClick',
                 function_owner=self,
 
                 position=
@@ -1135,7 +1138,7 @@ function createButtons(t)
             -- delta 10 button
             t.obj.createButton({
                 tooltip = buttonTooltipPlusOneTenClick,
-                click_function='receiveTenPlusOneClick',
+                click_function='ReceiveTenPlusOneClick',
                 function_owner=self,
 
                 position=
@@ -1157,7 +1160,7 @@ function createButtons(t)
 
             --bg button
             t.obj.createButton({
-                click_function = 'doNothing',
+                click_function = 'DoNothing',
                 function_owner = self,
 
                 height = verticalSize + rimSize + 16,
@@ -1180,7 +1183,7 @@ function createButtons(t)
                 label=plusOneLabelString,
                 tooltip = buttonTooltipPlusOneSingleClick,
 
-                click_function='receivePlusOneClick',
+                click_function='ReceivePlusOneClick',
                 function_owner=self,
 
                 position=
@@ -1231,7 +1234,7 @@ function createButtons(t)
     
                 --ownership gem
                 t.obj.createButton({
-                    click_function='doNothing',
+                    click_function='DoNothing',
                     function_owner=self,
     
                     position=
@@ -1251,7 +1254,7 @@ function createButtons(t)
     
                 --control gem
                 t.obj.createButton({
-                    click_function= "doNothing",
+                    click_function= "DoNothing",
                     function_owner=self,
     
                     position=
@@ -1363,7 +1366,7 @@ function createButtons(t)
 
             --bg  frame
             t.obj.createButton({
-                click_function = 'doNothing',
+                click_function = 'DoNothing',
                 label = "○",
                 function_owner = self,
 
@@ -1406,7 +1409,7 @@ function createButtons(t)
 
             --label symbol 2
             t.obj.createButton({
-                click_function = 'doNothing',
+                click_function = 'DoNothing',
                 label = dfcLabelSymbols[data.doubleFaceType][activeFace][2],
                 function_owner = self,
 
@@ -1429,7 +1432,7 @@ function createButtons(t)
 
             --label symbol 1
             t.obj.createButton({
-                click_function = 'doNothing',
+                click_function = 'DoNothing',
                 label = dfcLabelSymbols[data.doubleFaceType][activeFace][1],
                 function_owner = self,
 
@@ -1666,18 +1669,18 @@ function GetClickdataTable (tar, ply, alt)
         return dataTable
     else
         local dataTable = {recursiveCall=false}
-        tryAutoRegister(dataTable)
+        TryAutoRegister(dataTable)
     end
 end
 
-function receiveCounterClick(tar,ply,alt)
+function ReceiveCounterClick(tar,ply,alt)
     local dataTable = GetClickdataTable(tar, ply, alt)
     dataTable.varDelta = alt and -1 or 1
     dataTable.varName = "namedCounters"
     PropagateValueChange(dataTable)
 end
 
-function receiveTenCounterClick(tar,ply,alt)
+function ReceiveTenCounterClick(tar,ply,alt)
     local dataTable = GetClickdataTable(tar, ply, alt)
     dataTable.varDelta = alt and -10 or 10
     dataTable.varName = "namedCounters"
@@ -1694,62 +1697,62 @@ function GetPlaneswalkerAbilityDelta (dataTable, index)
     return dataTable.varDelta
 end
 
-function receivePlaneswalkerClickSlot1 (tar, ply, alt)
+function ReceivePlaneswalkerClickSlot1 (tar, ply, alt)
     local dataTable = GetClickdataTable(tar, ply, alt)
     dataTable.varName = "namedCounters"
     dataTable.varDelta = GetPlaneswalkerAbilityDelta(dataTable, 1)
     PropagateValueChange(dataTable)
 end
 
-function receivePlaneswalkerClickSlot2 (tar, ply, alt)
+function ReceivePlaneswalkerClickSlot2 (tar, ply, alt)
     local dataTable = GetClickdataTable(tar, ply, alt)
     dataTable.varName = "namedCounters"
     dataTable.varDelta = GetPlaneswalkerAbilityDelta(dataTable, 2)
     PropagateValueChange(dataTable)
 end
 
-function receivePlaneswalkerClickSlot3 (tar, ply, alt)
+function ReceivePlaneswalkerClickSlot3 (tar, ply, alt)
     local dataTable = GetClickdataTable(tar, ply, alt)
     dataTable.varName = "namedCounters"
     dataTable.varDelta = GetPlaneswalkerAbilityDelta(dataTable, 3)
     PropagateValueChange(dataTable)
 end
 
-function receivePlaneswalkerClickSlot4 (tar, ply, alt)
+function ReceivePlaneswalkerClickSlot4 (tar, ply, alt)
     local dataTable = GetClickdataTable(tar, ply, alt)
     dataTable.varName = "namedCounters"
     dataTable.varDelta = GetPlaneswalkerAbilityDelta(dataTable, 4)
     PropagateValueChange(dataTable)
 end
 
-function receivePowerClick(tar,ply,alt)
+function ReceivePowerClick(tar,ply,alt)
     local dataTable = GetClickdataTable(tar, ply, alt)
     dataTable.varDelta = alt and -1 or 1
     dataTable.varName = "power"
     PropagateValueChange(dataTable)
 end
 
-function receiveToughnessClick(tar,ply,alt)
+function ReceiveToughnessClick(tar,ply,alt)
     local dataTable = GetClickdataTable(tar, ply, alt)
     dataTable.varDelta = alt and -1 or 1
     dataTable.varName = "toughness"
     PropagateValueChange(dataTable)
 end
 
-function receivePowTouClick(tar,ply,alt)
-    receivePowerClick(tar,ply,alt)
-    receiveToughnessClick(tar,ply,alt)
+function ReceivePowTouClick(tar,ply,alt)
+    ReceivePowerClick(tar,ply,alt)
+    ReceiveToughnessClick(tar,ply,alt)
     --inefficient but propagating doesn't support changing two values atm
 end
 
-function receivePlusOneClick(tar,ply,alt)
+function ReceivePlusOneClick(tar,ply,alt)
     local dataTable = GetClickdataTable(tar, ply, alt)
     dataTable.varDelta = alt and -1 or 1
     dataTable.varName = "plusOneCounters"
     PropagateValueChange(dataTable)
 end
 
-function receiveTenPlusOneClick(tar,ply,alt)
+function ReceiveTenPlusOneClick(tar,ply,alt)
     local dataTable = GetClickdataTable(tar, ply, alt)
     dataTable.varDelta = alt and -10 or 10
     dataTable.varName = "plusOneCounters"
@@ -1956,7 +1959,7 @@ function ReEnableEmblemsAndTokens ()
 end
 
 --Parse Functions
-function parseCardData(object, enc)
+function ParseCardData(object, enc)
     local cardData = {{nameLine = "", typeLine = "", textLines = {}, statLine = ""}} -- does this work?
 
     local encData = enc.call("APIobjGetPropData",{obj=object,propID=pID})
@@ -1964,7 +1967,7 @@ function parseCardData(object, enc)
 
     if data == nil then
         local dataTable = {obj = object}
-        data = autoActivate(dataTable)
+        data = AutoActivate(dataTable)
         return
     end
     
@@ -2126,7 +2129,7 @@ function parseCardData(object, enc)
         end
 
         data.displayPowTou = autoActivatePowTou and (cardData[1]["typeLine"]:find("reature") ~= nil)
-        data.hasNonLoyaltyCounter = hasKeywordOrNamedCounter(cardData[1]["nameLine"], descriptionField) --maybe refactor this to not use the whole field
+        data.hasNonLoyaltyCounter = HasKeywordOrNamedCounter(cardData[1]["nameLine"], descriptionField) --maybe refactor this to not use the whole field
         data.displayPlaneswalkerAbilities = data.cardFaces[1]["pwCount"] > 0
         data.displayCounters = autoActivateCounter and (data.cardFaces[1].isPlaneswalker or data.hasNonLoyaltyCounter)
 
@@ -2151,7 +2154,7 @@ function string.splitUsingFind(text, separator)
     return splitTable
 end
 
-function hasKeywordOrNamedCounter(nameLine, description)
+function HasKeywordOrNamedCounter(nameLine, description)
     local keywordCounters = {"Cumulative upkeep", "Suspend", "Vanishing", "Fading", "after III"}
 
     for index, keywordString in ipairs(keywordCounters) do
@@ -2218,7 +2221,7 @@ function TryTimedEncoding(object)
     end
 end
 
-function autoActivate(dataTable)
+function AutoActivate(dataTable)
     local enc = Global.getVar('Encoder')
     if enc ~= nil then
         if enc.call("APIpropertyExists",{propID = pID}) == false then
@@ -2233,7 +2236,7 @@ function autoActivate(dataTable)
             if enc.call("APIobjIsPropEnabled", {obj=dataTable.obj, propID = pID}) == false then
                 enc.call("APIobjEnableProp",{obj=dataTable.obj, propID = pID})
 
-                parseCardData(dataTable.obj, enc)
+                ParseCardData(dataTable.obj, enc)
 
                 enc.call("APIrebuildButtons",{obj=dataTable.obj})
                 return data
@@ -2243,7 +2246,7 @@ function autoActivate(dataTable)
 end
 
 function InitializeCardData(object, enc)
-    parseCardData(object, enc)
+    ParseCardData(object, enc)
     TryAssignOwnership(object, enc)
 end
 
@@ -2266,7 +2269,7 @@ end
 --Deck Tracking Functions
 deckCandidateTracker = {}
 deckPlayerPairs = {}
-function initializeDeckTables()
+function InitializeDeckTables()
     local colorList = Color.list
 
     for key, value in pairs(colorList) do
@@ -2372,14 +2375,14 @@ function onObjectEnterScriptingZone(zone, object)
                 broadcastToAll("Deck set for ".."["..Color.fromString(playerColor):toHex(false).."]"..playerColor.."[-]")
 
                 if deck ~= nil then
-                    addPlayerDeck(playerColor, containerGUID)
+                    AddPlayerDeck(playerColor, containerGUID)
                 end
             end
         end
     end
 end
 
-function addPlayerDeck(playerColor, containerGUID)
+function AddPlayerDeck(playerColor, containerGUID)
     if deckPlayerPairs[containerGUID] ~= nil then
         deckCandidateTracker[deckPlayerPairs[containerGUID]][containerGUID].count = 0
     end
@@ -2393,5 +2396,5 @@ function addPlayerDeck(playerColor, containerGUID)
     end
 end
 
-function doNothing()
+function DoNothing()
 end
