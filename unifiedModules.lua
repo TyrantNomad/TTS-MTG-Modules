@@ -1,4 +1,4 @@
-moduleVersion = 2.17
+moduleVersion = 2.18
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -2003,6 +2003,8 @@ function ParseCardData(object, enc)
 
         local nameField = object.getName()
         local descriptionField = object.getDescription()
+
+        if (descriptionField:find("%[%x%x%x%x%x%x")) then return end
 
         local oldImportDFC = descriptionField:find("%/%/") ~= nil -- can't type-check DFC properly in old imports
         local generalDFC = descriptionField:find("%]\n") ~=  nil -- new DFCs have a linebreak after the first set of stats
