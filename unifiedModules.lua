@@ -1,4 +1,4 @@
-moduleVersion = 2.16
+moduleVersion = 2.17
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -39,6 +39,8 @@ autoActivateModule = true
 autoActivateCounter = true
 autoActivatePowTou = true
 autoActivatePlusOne = true
+autoActivateDFC = true
+autoActivateOwnership = true
 function ProcessSavedData(saved_data)
     if saved_data ~= nil and saved_data ~= "" then
         local loaded_data = JSON.decode(saved_data)
@@ -46,6 +48,8 @@ function ProcessSavedData(saved_data)
         autoActivateCounter = loaded_data.autoActivateCounter ~= nil and loaded_data.autoActivateCounter or true
         autoActivatePowTou = loaded_data.autoActivatePowTou ~= nil and loaded_data.autoActivatePowTou or true
         autoActivatePlusOne = loaded_data.autoActivatePlusOne ~= nil and loaded_data.autoActivatePlusOne or true
+        autoActivateDFC = loaded_data.autoActivateDFC ~= nil and loaded_data.autoActivateDFC or true
+        autoActivateOwnership = loaded_data.autoActivateOwnership ~= nil and loaded_data.autoActivateOwnership or true
     end
 end
 
@@ -306,6 +310,7 @@ function RegisterModule()
                 displayPowTou = false,
                 displayPlusOne = false,
                 displayOwnership = true,
+                displayDFC = false,
 
 
                 ownerColor = "Grey",
@@ -327,7 +332,7 @@ end
 function onChat(message, player)
     local message = string.lower(message)
 
-    if string.find(message,'force encoder') ~= nil then
+    if string.find(message,'^force encoder') ~= nil then
         if string.find (message,'update') ~= nil then
             WebRequest.get("https://raw.githubusercontent.com/Jophire/Tabletop-Simulator-Workshop-Items/master/Encoder/Encoder%20Core.lua", self, "ForceEncoderUpdate")
         elseif string.find (message,'temporary') ~= nil then
@@ -341,7 +346,7 @@ function onChat(message, player)
         end
     end
     
-    if string.find(message, 'force importer') ~= nil then
+    if string.find(message, '^force importer') ~= nil then
         if string.find (message, 'update') ~= nil then
             WebRequest.get("https://raw.githubusercontent.com/Amuzet/Tabletop-Simulator-Scripts/master/Magic/Importer.lua", self, "ForceImporterUpdate")
         elseif string.find (message, 'temporary') ~= nil then
@@ -373,34 +378,55 @@ function onChat(message, player)
             changedAnything = true
         end
 
+        if message:find('encode') then
+            autoActivateModule = targetState
+            changedAnything = true
+        end
+
+        if message:find('dfc') or message:find('double%-faced') then
+            autoActivateDFC = targetState
+            changedAnything = true
+        end
+
+        if message:find('owner') or message:find('control') then
+            autoActivateOwnership = targetState
+            changedAnything = true
+        end
+
         if changedAnything then BroadcastSettings() end
     end
 
-    if string.find(message, 'module') ~= nil then
+    if string.find(message, '^module') ~= nil then
         if message:find('help') then BroadcastCommands() end
         if message:find('setting') then BroadcastSettings() end
     end
 end
 
 function BroadcastSettings()
-    broadcastToAll("[888888][EASY MODULES][-] v"..moduleVersion.." - Current Auto-activation Settings:")
+    broadcastToAll("\n[888888][EASY MODULES][-] v"..moduleVersion.." - Auto-encode "..(autoActivateModule and "[00FF00]ON[-]" or "[FF0000]OFF[-]").." - Auto settings:")
 
     autoCounterText = autoActivateCounter and "[FFCC00]ON[-]" or "[BBBBBB]OFF[-]"
     autoPowTouText = autoActivatePowTou and "[FFCC00]ON[-]" or "[BBBBBB]OFF[-]"
     autoPlusOneText = autoActivatePlusOne and "[FFCC00]ON[-]" or "[BBBBBB]OFF[-]"
+    autoDFCtext = autoActivateDFC and "[FFCC00]ON[-]" or "[BBBBBB]OFF[-]"
+    autoOwnershipText = autoActivateOwnership and "[FFCC00]ON[-]" or "[BBBBBB]OFF[-]"
 
     broadcastToAll("Auto PowTou "..autoPowTouText.."     ".."Auto PlusOne "..autoPlusOneText.."     ".."Auto Counter "..autoCounterText)
+    broadcastToAll("Auto Double-faced "..autoDFCtext.."     ".."Auto Ownership "..autoOwnershipText)
+
+    if autoActivateModule == false then broadcastToAll("\n[FF0000]Auto-encoding is [FFFFFF]OFF[-] - Nothing will activate automatically.\nType [FFFFFF]'auto encode on'[-] to turn it back on\n") end
 end
 
 function BroadcastCommands()
     broadcastToAll("[888888][EASY MODULES][-] Command List")
-    broadcastToAll("'force encoder/importer reload'[888888] - Reloads the object, use if they stop working")
-    broadcastToAll("'force encoder/importer update'[888888] - Replaces object script with most recent release")
-    broadcastToAll("'force encoder/importer temporary'[888888] - Creates a placeholder object with that script")
-    broadcastToAll("'auto powtow/plusone/counter on/off'[888888] - Changes auto-activation settings")
-    broadcastToAll("''modules settings'[888888] - Shows the current auto-activation settings")
-    broadcastToAll("''modules help'[888888] - Spams chat with 8 lines of text")
-    broadcastToAll("[888888]Commands will trigger if the words are anywhere in the message[-]")
+    broadcastToAll("force     [BBBBBB]encoder / importer[-]     reload[888888] - Reloads the object, use if they stop working")
+    broadcastToAll("force     [BBBBBB]encoder / importer[-]     update[888888] - Replaces object script with most recent release")
+    broadcastToAll("force     [BBBBBB]encoder / importer[-]     temporary[888888] - Creates a placeholder with that script")
+    broadcastToAll("\nauto     [BBBBBB]encode / dfc / owner[-]     on / off[888888] - Changes auto-activation settings")
+    broadcastToAll("auto     [BBBBBB]powtow / plusone / counter[-]     on / off[888888] - Changes auto-activation settings")
+    broadcastToAll("\nmodules     settings[888888] - Shows the current auto-activation settings")
+    broadcastToAll("modules     help[888888] - Spams chat with 9 lines of text")
+    broadcastToAll("[888888]You can [BBBBBB]stack commands[-] with the same starting word: [BBBBBB]'auto powtou plusone off'[-]")
 end
 
 function ToggleAutoActivate()
@@ -1299,7 +1325,7 @@ function createButtons(t)
         end
 
         --DFC section
-        if data.doubleFaceType ~= "none" and data.doubleFaceType ~= "flip" and data.doubleFaceType ~= "split" then
+        if data.displayDFC and data.doubleFaceType ~= "none" and data.doubleFaceType ~= "flip" and data.doubleFaceType ~= "split" then
             --offsets are all over the place rip, but these should fit the vast majority of most common prints
             local typeOffsets = {
                 planeswalker = {-0.865, -1.330},
@@ -2127,6 +2153,10 @@ function ParseCardData(object, enc)
                     data.doubleFaceType = "werecard"
                 end
             end
+            
+            if data.doubleFaceType ~= "none" and data.doubleFaceType ~= "flip" and data.doubleFaceType ~= "split" then
+                data.displayDFC = autoActivateDFC
+            end
         end
 
         data.displayPowTou = autoActivatePowTou and (cardData[1]["typeLine"]:find("reature") ~= nil)
@@ -2201,10 +2231,10 @@ function onObjectSpawn(obj)
 end
 
 function TryTimedEncoding(object)
-    if object.tag ~= "Card" then return end
+    if object.tag ~= "Card" or autoActivateModule == false then return end
 
     local enc = Global.getVar('Encoder')
-    if enc == nil or autoActivateModule == false then return end
+    if enc == nil then return end
 
     if enc.call("APIobjectExists",{obj=object}) == false and object.getVar('noencode') == nil then
         --noencode doesn't exist
@@ -2255,16 +2285,18 @@ function TryAssignOwnership(object, enc)
     local cardTable = CheckGetSetCardTable(object)
     local ownerColor = cardTable.ownerColor ~= "" and cardTable.ownerColor or (cardTable.containerID ~= "" and deckPlayerPairs[cardTable.containerID] or nil)
 
-    if ownerColor ~= nil and ownerColor  ~= "" then
-        local encData = enc.call("APIobjGetPropData",{obj = object, propID = pID})
-        local data = encData["tyrantUnified"]
+    local encData = enc.call("APIobjGetPropData",{obj = object, propID = pID})
+    local data = encData["tyrantUnified"]
 
+    if ownerColor ~= nil and ownerColor  ~= "" then
         data.ownerColor = ownerColor
         data.controllerColor = ownerColor
-
-        encData["tyrantUnified"] = data
-        enc.call("APIobjSetPropData",{obj = object, propID = pID, data = encData})
     end
+    
+    data.displayOwnership = autoActivateOwnership
+
+    encData["tyrantUnified"] = data
+    enc.call("APIobjSetPropData",{obj = object, propID = pID, data = encData})
 end
 
 --Deck Tracking Functions
