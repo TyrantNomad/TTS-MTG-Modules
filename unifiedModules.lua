@@ -1,4 +1,4 @@
-moduleVersion = 2.18
+moduleVersion = 2.19
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -399,6 +399,7 @@ function onChat(message, player)
     if string.find(message, '^module') ~= nil then
         if message:find('help') then BroadcastCommands() end
         if message:find('setting') then BroadcastSettings() end
+        if message:find('update') then SelfUpdateCheck() end
     end
 end
 
@@ -2004,7 +2005,8 @@ function ParseCardData(object, enc)
         local nameField = object.getName()
         local descriptionField = object.getDescription()
 
-        if (descriptionField:find("%[%x%x%x%x%x%x")) then return end
+        if (descriptionField:find("%[%x%x%x%x%x%x") or nameField:find("%[%x%x%x%x%x%x")) then return end
+        --these cause timeouts on the other matches and finds as well as breaking the parser
 
         local oldImportDFC = descriptionField:find("%/%/") ~= nil -- can't type-check DFC properly in old imports
         local generalDFC = descriptionField:find("%]\n") ~=  nil -- new DFCs have a linebreak after the first set of stats
@@ -2343,7 +2345,8 @@ function CheckGetSetContainerTable (container)
     local containerTable = container.getTable("tyrantUnified")
     if containerTable == nil then
         containerData = container.getCustomObject()
-        containerTable = {cardBack = containerData.back, frontFace = "", backFace = "", containerID = container.guid, ownerColor = ""}
+        containerTable = {cardBack = "", frontFace = "", backFace = "", containerID = container.guid, ownerColor = ""}
+        containerTable["frontFace"] = containerData["front"] ~= nil and containerData["front"] or ""
         container.setTable("tyrantUnified", containerTable)
     end
     return containerTable
@@ -2354,6 +2357,8 @@ function CheckGetSetCardTable (card, containerTable)
     if cardTable == nil then
         cardData = card.getCustomObject()
         cardTable = {cardBack = "", frontFace = cardData.front, backFace = cardData.back, containerID = "", ownerColor = ""}
+        cardTable["frontFace"] = containerData["front"] ~= nil and containerData["front"] or ""
+        cardTable["backFace"] = containerData["back"] ~= nil and containerData["back"]or "" 
     end
 
     if containerTable ~= nil then
