@@ -1,4 +1,4 @@
-moduleVersion = 2.19
+moduleVersion = 2.20
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -259,7 +259,7 @@ function RegisterModule()
     if enc ~= nil then
         encVersion = enc.getVar("version"):match("%d+%.%d+")
         if tonumber(encVersion) < 4.2 then 
-            broadcastToAll("[888888][EASY MODULES][-]\nEncoder version too old. To use this module, manually upgrade it to v3.18+ or type 'force encoder update' to attempt a forced update")
+            broadcastToAll("[888888][EASY MODULES][-]\nEncoder version too old. To use this module, manually upgrade it to v4.20+ or type 'force encoder update' to attempt a forced update")
             return
         end
     
@@ -1579,9 +1579,7 @@ function UpdateEncoderDataValue (dataTable)
     end
 
     encData["tyrantUnified"] = objectData
-    --dataTable.encoder.call("APIobjSetValueData", {obj = dataTable.target, valueID = "tyrantUnified", data = objectData})
     dataTable.encoder.call("APIobjSetPropData",{obj = dataTable.target, propID = pID, data = encData})
-    --enc.call("APIobjSetPropData",{obj=obj,propID=pID,data=data})
     enc.call("APIrebuildButtons",{obj = dataTable.target})
 end
 
@@ -2356,9 +2354,9 @@ function CheckGetSetCardTable (card, containerTable)
     local cardTable = card.getTable("tyrantUnified")
     if cardTable == nil then
         cardData = card.getCustomObject()
-        cardTable = {cardBack = "", frontFace = cardData.front, backFace = cardData.back, containerID = "", ownerColor = ""}
-        cardTable["frontFace"] = containerData["front"] ~= nil and containerData["front"] or ""
-        cardTable["backFace"] = containerData["back"] ~= nil and containerData["back"]or "" 
+        cardTable = {cardBack = "", frontFace = "", backFace = "", containerID = "", ownerColor = ""}
+        cardTable["frontFace"] = cardData["front"] ~= nil and cardData["front"] or ""
+        cardTable["backFace"] = cardData["back"] ~= nil and cardData["back"]or "" 
     end
 
     if containerTable ~= nil then
