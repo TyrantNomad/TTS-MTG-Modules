@@ -1,4 +1,4 @@
-moduleVersion = 2.20
+moduleVersion = 2.21
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -1914,7 +1914,7 @@ function ReImport (tar, ply, alt)
         return
     end
 
-    if tar.getDescription() == "" then
+    if tar.getName() == "" then
         broadcastToAll("[888888][EASY MODULES][-]\nERROR\nCard Object has no name")
         return
     end
@@ -2371,7 +2371,9 @@ end
 
 function CheckRevertInvertedFaces (card)
     local cardData = card.getCustomObject()
-    if cardData.face:find("/back/") and cardData.back:find("/front/") then
+    local faceAddress = cardData["face"] ~= nil and cardData["face"] or ""
+    local backAddress = cardData["back"] ~= nil and cardData["back"] or ""
+    if faceAddress:find("/back/") and backAddress:find("/front/") then
         broadcastToAll("[888888][EASY MODULES][-]\nInverted card faces detected & switched for "..card.getName():match("(.-)\n"))
         InvertCardFaces(card)
     end
