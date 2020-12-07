@@ -1,4 +1,4 @@
-moduleVersion = 2.23
+moduleVersion = 2.24
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -1869,7 +1869,7 @@ function MakeExactCopy (tar, ply, alt)
                 identifier = "exactCopyTimer"..tar.guid..copyCount,
                 function_name = "SetExactCopyData",
                 function_owner = self,
-                parameters = {copiedCard = copiedCard, valueData = valueData, moduleData = moduleData, enc = enc},
+                parameters = {copiedCard = copiedCard, valueData = valueData, moduleData = moduleData, flipData = flip, enc = enc},
                 delay = 0.2
             })
         end
@@ -1889,6 +1889,7 @@ function SetExactCopyData (dataTable)
     dataTable.enc.call("APIencodeObject",{obj=dataTable.copiedCard})
     dataTable.enc.call("APIobjSetAllData",{obj=dataTable.copiedCard, data = dataTable.valueData})
     dataTable.enc.call("APIobjSetProps",{obj=dataTable.copiedCard, data = dataTable.moduleData})
+    if dataTable.flipData < 0 then enc.call("APIFlip", {obj = dataTable.copiedCard}) end
     dataTable.enc.call("APIrebuildButtons",{obj=dataTable.copiedCard})
 
     dataTable.copiedCard.setLock(false)
