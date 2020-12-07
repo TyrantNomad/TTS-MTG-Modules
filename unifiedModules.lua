@@ -1,4 +1,4 @@
-moduleVersion = 2.24
+moduleVersion = 2.25
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -31,13 +31,13 @@ end
 
 function onSave()
     local data_to_save = {
-        autoActivateModule,
-        autoActivatePlayerSettings,
-        autoActivateCounter,
-        autoActivatePowTou,
-        autoActivatePlusOne,
-        autoActivateDFC,
-        autoActivateOwnership
+        autoActivateModule = autoActivateModule,
+        autoActivatePlayerSettings = autoActivatePlayerSettings,
+        autoActivateCounter = autoActivateCounter,
+        autoActivatePowTou = autoActivatePowTou,
+        autoActivatePlusOne = autoActivatePlusOne,
+        autoActivateDFC = autoActivateDFC,
+        autoActivateOwnership = autoActivateOwnership
     }
     local saved_data = JSON.encode(data_to_save)
     return saved_data
@@ -52,14 +52,15 @@ autoActivateDFC = true
 autoActivateOwnership = true
 function ProcessSavedData(saved_data)
     if saved_data ~= nil and saved_data ~= "" then
+        --print(saved_data)
         local loaded_data = JSON.decode(saved_data)
-        autoActivateModule = loaded_data.autoActivateModule ~= nil and loaded_data.autoActivateModule or true
-        autoActivatePlayerSettings = loaded_data.autoActivatePlayerSettings ~= nil and loaded_data.autoActivatePlayerSettings or autoActivatePlayerSettings
-        autoActivateCounter = loaded_data.autoActivateCounter ~= nil and loaded_data.autoActivateCounter or true
-        autoActivatePowTou = loaded_data.autoActivatePowTou ~= nil and loaded_data.autoActivatePowTou or true
-        autoActivatePlusOne = loaded_data.autoActivatePlusOne ~= nil and loaded_data.autoActivatePlusOne or true
-        autoActivateDFC = loaded_data.autoActivateDFC ~= nil and loaded_data.autoActivateDFC or true
-        autoActivateOwnership = loaded_data.autoActivateOwnership ~= nil and loaded_data.autoActivateOwnership or true
+        autoActivateModule = loaded_data.autoActivateModule == nil and true or loaded_data.autoActivateModule
+        autoActivatePlayerSettings = loaded_data.autoActivatePlayerSettings == nil and autoActivatePlayerSettings or loaded_data.autoActivatePlayerSettings
+        autoActivateCounter = loaded_data.autoActivateCounter == nil and true or loaded_data.autoActivateCounter
+        autoActivatePowTou = loaded_data.autoActivatePowTou == nil and true or loaded_data.autoActivatePowTou
+        autoActivatePlusOne = loaded_data.autoActivatePlusOne == nil and true or loaded_data.autoActivatePlusOne
+        autoActivateDFC = loaded_data.autoActivateDFC == nil and true or loaded_data.autoActivateDFC
+        autoActivateOwnership = loaded_data.autoActivateOwnership == nil and true or loaded_data.autoActivateOwnership
     end
 end
 
@@ -1790,6 +1791,13 @@ function ReceivePowerClick(tar,ply,alt)
 end
 
 function ReceiveToughnessClick(tar,ply,alt)
+    local dataTable = GetClickdataTable(tar, ply, alt)
+    dataTable.varDelta = alt and -1 or 1
+    dataTable.varName = "toughness"
+    PropagateValueChange(dataTable)
+end
+
+function ReceiveToughnessZeroClick(tar, ply, alt)
     local dataTable = GetClickdataTable(tar, ply, alt)
     dataTable.varDelta = alt and -1 or 1
     dataTable.varName = "toughness"
