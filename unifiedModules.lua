@@ -1,10 +1,10 @@
-moduleVersion = 2.22
+moduleVersion = 2.23
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
 --by @TyrantNomad
---built around the Encoder by Tipsy Hobbit (steamid: 13465982)
---using functions from Importer by Amuzet (steamid: 42755365)
+--built around the Encoder by Tipsy Hobbit (steam_id: 13465982)
+--using functions from Importer by Amuzet (steam_id: 42755365)
 
 isRegistered = false
 
@@ -30,12 +30,21 @@ function SelfUpdateCheck(webRequest)
 end
 
 function onSave()
-    local data_to_save = {autoActivateModule,autoActivateCounter,autoActivatePowTou,autoActivatePlusOne}
+    local data_to_save = {
+        autoActivateModule,
+        autoActivatePlayerSettings,
+        autoActivateCounter,
+        autoActivatePowTou,
+        autoActivatePlusOne,
+        autoActivateDFC,
+        autoActivateOwnership
+    }
     local saved_data = JSON.encode(data_to_save)
     return saved_data
 end
 
 autoActivateModule = true
+autoActivatePlayerSettings = {}
 autoActivateCounter = true
 autoActivatePowTou = true
 autoActivatePlusOne = true
@@ -45,6 +54,7 @@ function ProcessSavedData(saved_data)
     if saved_data ~= nil and saved_data ~= "" then
         local loaded_data = JSON.decode(saved_data)
         autoActivateModule = loaded_data.autoActivateModule ~= nil and loaded_data.autoActivateModule or true
+        autoActivatePlayerSettings = loaded_data.autoActivatePlayerSettings ~= nil and loaded_data.autoActivatePlayerSettings or autoActivatePlayerSettings
         autoActivateCounter = loaded_data.autoActivateCounter ~= nil and loaded_data.autoActivateCounter or true
         autoActivatePowTou = loaded_data.autoActivatePowTou ~= nil and loaded_data.autoActivatePowTou or true
         autoActivatePlusOne = loaded_data.autoActivatePlusOne ~= nil and loaded_data.autoActivatePlusOne or true
@@ -324,7 +334,7 @@ function RegisterModule()
 
         RefreshModuleChipButtons()
     else
-        broadcastToAll("[888888][EASY MODULES][-]\nNo encoder found. You need [FFCC00]Encoder v3.18+ by Tipsy Hobbit (steamid: 13465982)[-] to use the module")
+        broadcastToAll("[888888][EASY MODULES][-]\nNo encoder found. You need [FFCC00]Encoder v4.20+ by Tipsy Hobbit (steam_id: 13465982)[-] to use the module")
         broadcastToAll("[888888][EASY MODULES][-]\nGet the Encoder from the Steam Workshop or type [FFCC00]'force encoder temporary'[-] to spawn a placeholder")
     end
 end
@@ -393,6 +403,13 @@ function onChat(message, player)
             changedAnything = true
         end
 
+        if message:find('player') then
+            autoActivatePlayerSettings[player.steam_id] = targetState and targetState or false
+            local targetString = targetState and "[00FF00]ENABLED [-]" or "[FF0000]DISABLED [-]"
+            local hexColor = Color.fromString(player.color):toHex(false)
+            broadcastToAll("[BBBBBB]Auto-encoding "..targetString.."for ["..hexColor.."]"..player.steam_name.."[-]")
+        end
+
         if changedAnything then BroadcastSettings() end
     end
 
@@ -413,9 +430,22 @@ function BroadcastSettings()
     autoOwnershipText = autoActivateOwnership and "[FFCC00]ON[-]" or "[BBBBBB]OFF[-]"
 
     broadcastToAll("Auto PowTou "..autoPowTouText.."     ".."Auto PlusOne "..autoPlusOneText.."     ".."Auto Counter "..autoCounterText)
-    broadcastToAll("Auto Double-faced "..autoDFCtext.."     ".."Auto Ownership "..autoOwnershipText)
+    broadcastToAll("Auto Double-faced "..autoDFCtext.."     ".."Auto Ownership "..autoOwnershipText.."\n")
 
-    if autoActivateModule == false then broadcastToAll("\n[FF0000]Auto-encoding is [FFFFFF]OFF[-] - Nothing will activate automatically.\nType [FFFFFF]'auto encode on'[-] to turn it back on\n") end
+    if autoActivateModule == false then broadcastToAll("\n[FF0000]Auto-encoding is [FFFFFF]OFF[-] - Nothing will activate automatically.\nType [FFFFFF]'auto encode on'[-] to turn it back on\n") 
+    else 
+        for key, player in pairs(Player.getPlayers()) do
+            if autoActivatePlayerSettings[player.steam_id] ~= nil then
+            --honestly we don't really car to show this unless the player disabled it, I'll keep the string ready for it but let's avoid spamming too much
+                if autoActivatePlayerSettings[player.steam_id] then else
+                    local stateString = autoActivatePlayerSettings[player.steam_id] and "[00FF00]ENABLED [-]" or "[FF0000]DISABLED [-]"
+                    local hexColor = Color.fromString(player.color):toHex(false)
+                    broadcastToAll("[BBBBBB]Auto-encoding is "..stateString.."for ["..hexColor.."]"..player.steam_name.."[-]")
+                end
+            end
+        end
+        broadcastToAll("[BBBBBB]Each player can set their preference by typing [FFCC00]'auto [FFFFFF]player[-] on/off")
+    end
 end
 
 function BroadcastCommands()
@@ -423,10 +453,11 @@ function BroadcastCommands()
     broadcastToAll("force     [BBBBBB]encoder / importer[-]     reload[888888] - Reloads the object, use if they stop working")
     broadcastToAll("force     [BBBBBB]encoder / importer[-]     update[888888] - Replaces object script with most recent release")
     broadcastToAll("force     [BBBBBB]encoder / importer[-]     temporary[888888] - Creates a placeholder with that script")
+    broadcastToAll("\nauto     [BBBBBB]player[-]     on / off[888888] - Changes auto-encoding settings for who sent the message")
     broadcastToAll("\nauto     [BBBBBB]encode / dfc / owner[-]     on / off[888888] - Changes auto-activation settings")
     broadcastToAll("auto     [BBBBBB]powtow / plusone / counter[-]     on / off[888888] - Changes auto-activation settings")
     broadcastToAll("\nmodules     settings[888888] - Shows the current auto-activation settings")
-    broadcastToAll("modules     help[888888] - Spams chat with 9 lines of text")
+    broadcastToAll("modules     help[888888] - Spams chat with 10 lines of text")
     broadcastToAll("[888888]You can [BBBBBB]stack commands[-] with the same starting word: [BBBBBB]'auto powtou plusone off'[-]")
 end
 
@@ -1788,7 +1819,7 @@ end
 --Toolbox Functions
 copyCount = 0
 function MakeExactCopy (tar, ply, alt)
-    --based on Exact Copy by Tipsy Hobbit (steamid: 13465982)
+    --based on Exact Copy by Tipsy Hobbit (steam_id: 13465982)
     enc = Global.getVar('Encoder')
     if enc ~= nil then
         local encData = enc.call("APIobjGetPropData",{obj = tar, propID = pID})
@@ -2216,7 +2247,8 @@ function HasKeywordOrNamedCounter(nameLine, description)
 end
 
 --Auto Functions
-function onObjectDropped (player, object)
+function onObjectDropped (playerColor, object)
+    if autoActivateModule == false or (autoActivatePlayerSettings[Player[playerColor].steam_id] ~= nil and autoActivatePlayerSettings[Player[playerColor].steam_id] == false) then return end
     TryTimedEncoding(object)
 end
 
@@ -2233,7 +2265,7 @@ function onObjectSpawn(obj)
 end
 
 function TryTimedEncoding(object)
-    if object.tag ~= "Card" or autoActivateModule == false then return end
+    if object.tag ~= "Card" then return end
 
     local enc = Global.getVar('Encoder')
     if enc == nil then return end
