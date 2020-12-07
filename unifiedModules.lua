@@ -1,4 +1,4 @@
-moduleVersion = 2.21
+moduleVersion = 2.22
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -2069,7 +2069,7 @@ function ParseCardData(object, enc)
             end
         end
 
-        if cardData[1]["nameLine"] == nil or cardData[1]["typeLine"] == nil then return end
+        if cardData[1]["nameLine"] == nil or cardData[1]["nameLine"]:find("^%w+") == nil or cardData[1]["typeLine"] == nil then return end
 
         for index, value in ipairs (cardData) do
             --planeswalker check
