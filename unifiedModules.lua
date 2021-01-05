@@ -1933,10 +1933,10 @@ end
 function GetAmuzetsCardImporter ()
     enc = Global.getVar("Encoder")
     if enc ~= nil then
-        local encoderToolTable = enc.getTable("Tools")
-        if encoderToolTable["Card Importer"] == nil then return end
+        local prop = enc.call("APIgetProp",{propID="Card Importer"})
+        if prop == nil then return end
 
-        local amuzetCardImporter = encoderToolTable["Card Importer"].funcOwner
+        local amuzetCardImporter = prop.funcOwner
 
         local importerVersion = tonumber(string.match(amuzetCardImporter.getVar("version"),"%d+%.%d*"))
         if importerVersion < 1.901 then
