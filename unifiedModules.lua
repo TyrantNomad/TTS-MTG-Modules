@@ -1,4 +1,4 @@
-moduleVersion = 2.26
+moduleVersion = 2.28
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -269,7 +269,7 @@ function RegisterModule()
 
     local enc = Global.getVar('Encoder')
     if enc ~= nil then
-        encVersion = tonumber(enc.getVar("version"):match("%d+%.%d+"))
+        RefreshEncoderVersion(enc)
         if encVersion < 4.2 then 
             broadcastToAll("[888888][EASY MODULES][-]\nEncoder version too old. To use this module, manually upgrade it to v4.20+ or type 'force encoder update' to attempt a forced update")
             return
@@ -352,6 +352,10 @@ function RegisterModule()
         broadcastToAll("[888888][EASY MODULES][-]\nNo encoder found. You need [FFCC00]Encoder v4.20+ by Tipsy Hobbit (steam_id: 13465982)[-] to use the module")
         broadcastToAll("[888888][EASY MODULES][-]\nGet the Encoder from the Steam Workshop or type [FFCC00]'force encoder temporary'[-] to spawn a placeholder")
     end
+end
+
+function RefreshEncoderVersion(encoder)
+    encVersion = tonumber(encoder.getVar("version"):match("%d+%.%d+"))
 end
 
 function ModuleActivation(obj,ply)
@@ -1933,10 +1937,20 @@ end
 function GetAmuzetsCardImporter ()
     enc = Global.getVar("Encoder")
     if enc ~= nil then
-        local encoderToolTable = enc.getTable("Tools")
-        if encoderToolTable["Card Importer"] == nil then return end
+        local amuzetCardImporter
 
-        local amuzetCardImporter = encoderToolTable["Card Importer"].funcOwner
+        RefreshEncoderVersion(enc)
+        if encVersion < 4.4 then
+            local encoderModuleTable = enc.getTable("Tools")
+            if encoderModuleTable["Card Importer"] == nil then return end
+            amuzetCardImporter = encoderModuleTable["Card Importer"].funcOwner ~= nil and encoderModuleTable["Card Importer"].funcOwner or nil
+        else
+            moduleReference = enc.call("APIgetProp",{propID="Card Importer"})
+            if prop == nil then return end
+            amuzetCardImporter = moduleReference.funcOwner ~= nil and moduleReference.funcOwner or nil
+        end
+        broadcastToAll("hello "..type(amuzetCardImporter))
+        if amuzetCardImporter == nil then return end
 
         local importerVersion = tonumber(string.match(amuzetCardImporter.getVar("version"),"%d+%.%d*"))
         if importerVersion < 1.901 then
