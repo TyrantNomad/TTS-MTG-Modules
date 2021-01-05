@@ -1,4 +1,4 @@
-moduleVersion = 2.25
+moduleVersion = 2.26
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -260,6 +260,7 @@ function RefreshModuleChipButtons()
     CreateModuleChipButtons()
 end
 
+encVersion = 0
 --external auto-registration compatibility
 function registerModule() RegisterModule() end
 function RegisterModule()
@@ -268,20 +269,33 @@ function RegisterModule()
 
     local enc = Global.getVar('Encoder')
     if enc ~= nil then
-        encVersion = enc.getVar("version"):match("%d+%.%d+")
-        if tonumber(encVersion) < 4.2 then 
+        encVersion = tonumber(enc.getVar("version"):match("%d+%.%d+"))
+        if encVersion < 4.2 then 
             broadcastToAll("[888888][EASY MODULES][-]\nEncoder version too old. To use this module, manually upgrade it to v4.20+ or type 'force encoder update' to attempt a forced update")
             return
         end
     
-        local properties = {
-            propID = pID,
-            name = " Easy Modules Unified",
-            values = {"tyrantUnified"},
-            funcOwner = self,
-            callOnActivate = false,
-            activateFunc =''
-        }
+        local properties
+        if encVersion < 4.4 then
+            properties = {
+                propID = pID,
+                name = " Easy Modules Unified",
+                values = {"tyrantUnified"},
+                funcOwner = self,
+                callOnActivate = false,
+                activateFunc =''
+            }
+        else
+            broadcastToAll("new params")
+            properties = {
+                propID = pID,
+                name = " Easy Modules Unified",
+                values = {"tyrantUnified"},
+                funcOwner = self,
+                tags="basic,counter",
+                activateFunc ='ModuleActivation'
+            }
+        end
         enc.call("APIregisterProperty",properties)
 
         local value = {
@@ -338,6 +352,10 @@ function RegisterModule()
         broadcastToAll("[888888][EASY MODULES][-]\nNo encoder found. You need [FFCC00]Encoder v4.20+ by Tipsy Hobbit (steam_id: 13465982)[-] to use the module")
         broadcastToAll("[888888][EASY MODULES][-]\nGet the Encoder from the Steam Workshop or type [FFCC00]'force encoder temporary'[-] to spawn a placeholder")
     end
+end
+
+function ModuleActivation(obj,ply)
+    enc.call("APItoggleProperty",{obj=obj,propID=pID})
 end
 
 function onChat(message, player)
@@ -456,7 +474,7 @@ function BroadcastCommands()
     broadcastToAll("force     [BBBBBB]encoder / importer[-]     temporary[888888] - Creates a placeholder with that script")
     broadcastToAll("\nauto     [BBBBBB]player[-]     on / off[888888] - Changes auto-encoding settings for who sent the message")
     broadcastToAll("\nauto     [BBBBBB]encode / dfc / owner[-]     on / off[888888] - Changes auto-activation settings")
-    broadcastToAll("auto     [BBBBBB]powtow / plusone / counter[-]     on / off[888888] - Changes auto-activation settings")
+    broadcastToAll("auto     [BBBBBB]powtou / plusone / counter[-]     on / off[888888] - Changes auto-activation settings")
     broadcastToAll("\nmodules     settings[888888] - Shows the current auto-activation settings")
     broadcastToAll("modules     help[888888] - Spams chat with 10 lines of text")
     broadcastToAll("[888888]You can [BBBBBB]stack commands[-] with the same starting word: [BBBBBB]'auto powtou plusone off'[-]")
