@@ -1,4 +1,4 @@
-moduleVersion = 2.28
+moduleVersion = 2.29
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -1949,7 +1949,6 @@ function GetAmuzetsCardImporter ()
             if prop == nil then return end
             amuzetCardImporter = moduleReference.funcOwner ~= nil and moduleReference.funcOwner or nil
         end
-        broadcastToAll("hello "..type(amuzetCardImporter))
         if amuzetCardImporter == nil then return end
 
         local importerVersion = tonumber(string.match(amuzetCardImporter.getVar("version"),"%d+%.%d*"))
