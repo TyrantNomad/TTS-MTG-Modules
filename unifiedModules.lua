@@ -1,4 +1,4 @@
-moduleVersion = 2.30
+moduleVersion = 2.31
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -1690,7 +1690,7 @@ function ReceiveChangeActiveFace (tar, ply, alt)
     local data = encData["tyrantUnified"]
     local cardData = CheckGetSetCardTable(tar, nil)
 
-    if cardData["ownerColor"] ~= nil then 
+    if data["ownerColor"] ~= nil and data["ownerColor"] ~= "Grey" then 
         broadcastToAll("[888888][EASY MODULES][-]\nLibrary double-faced card detected, reimporting.")
         ReImport(tar, ply, false)
         return
