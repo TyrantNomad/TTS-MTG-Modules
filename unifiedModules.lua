@@ -1688,6 +1688,14 @@ function ReceiveChangeActiveFace (tar, ply, alt)
     local dataTable = GetClickdataTable(tar, ply, alt)
     local encData = dataTable.encoder.call("APIobjGetPropData",{obj=tar,propID=pID})
     local data = encData["tyrantUnified"]
+    local cardData = CheckGetSetCardTable(tar, nil)
+
+    if cardData["ownerColor"] ~= nil then 
+        broadcastToAll("[888888][EASY MODULES][-]\nLibrary double-faced card detected, reimporting.")
+        ReImport(tar, ply, false)
+        return
+    end
+
     data.activeFace = data.activeFace == 1 and 2 or 1
 
     if data.cardFaces[data.activeFace]["isPlaneswalker"] then
@@ -1946,7 +1954,7 @@ function GetAmuzetsCardImporter ()
             amuzetCardImporter = encoderModuleTable["Card Importer"].funcOwner ~= nil and encoderModuleTable["Card Importer"].funcOwner or nil
         else
             moduleReference = enc.call("APIgetProp",{propID="Card Importer"})
-            if prop == nil then return end
+            if moduleReference == nil then return end
             amuzetCardImporter = moduleReference.funcOwner ~= nil and moduleReference.funcOwner or nil
         end
         if amuzetCardImporter == nil then return end
