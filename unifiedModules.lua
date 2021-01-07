@@ -286,7 +286,6 @@ function RegisterModule()
                 activateFunc =''
             }
         else
-            broadcastToAll("new params")
             properties = {
                 propID = pID,
                 name = " Easy Modules Unified",
