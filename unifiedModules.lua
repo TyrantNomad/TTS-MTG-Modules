@@ -1,4 +1,4 @@
-moduleVersion = 2.32
+moduleVersion = 2.33
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -2476,7 +2476,18 @@ function onObjectEnterScriptingZone(zone, object)
 
     local enc = Global.getVar('Encoder')
     if enc ~= nil then
-        local encoderZones = enc.getTable("Zones")
+        local encoderZones
+        --9 encoder update workarounds
+        --9 encoder update workarounds
+        --one week out, waiting around
+        --10 encoder update workarounds
+        local apiCheck = enc.getVar("APIlistZones")
+        if apiCheck ~= nil then
+            encoderZones = enc.call("APIlistZones",{})
+        else
+            encoderZones = enc.getTable("Zones")
+        end
+        
         if encoderZones[zone.getGUID()] ~= nil then
             local cardTable = CheckGetSetCardTable(object)
             local containerGUID = cardTable.containerID
