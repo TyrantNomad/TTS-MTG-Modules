@@ -1,4 +1,4 @@
-moduleVersion = 2.31
+moduleVersion = 2.32
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -2313,11 +2313,12 @@ end
 
 function TryTimedEncoding(object)
     if object.tag ~= "Card" then return end
+    if object.getVar('noencode') ~= nil and object.getVar('noencode') == true then return end
 
     local enc = Global.getVar('Encoder')
     if enc == nil then return end
 
-    if enc.call("APIobjectExists",{obj=object}) == false and object.getVar('noencode') == nil then
+    if enc.call("APIobjectExists",{obj=object}) == false then
         --noencode doesn't exist
         enc.call("APIencodeObject",{obj=object})
     end
