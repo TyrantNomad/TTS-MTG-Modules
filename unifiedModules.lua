@@ -1,4 +1,4 @@
-moduleVersion = 2.33
+moduleVersion = 2.34
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -2030,7 +2030,7 @@ function EmblemsAndTokens (tar, ply, alt)
         return
     end
 
-    if tar.getDescription() == "" then
+    if tar.getName() == "" then
         broadcastToAll("[888888][EASY MODULES][-]\nERROR\nCard Object has no name")
         return
     end
