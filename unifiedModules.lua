@@ -1,4 +1,4 @@
-moduleVersion = 2.34
+moduleVersion = 2.35
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -2454,7 +2454,7 @@ function CheckRevertInvertedFaces (card)
     local faceAddress = cardData["face"] ~= nil and cardData["face"] or ""
     local backAddress = cardData["back"] ~= nil and cardData["back"] or ""
     if faceAddress:find("/back/") and backAddress:find("/front/") then
-        broadcastToAll("[888888][EASY MODULES][-]\nInverted card faces detected & switched for "..card.getName():match("(.-)\n"))
+        --broadcastToAll("[888888][EASY MODULES][-]\nInverted card faces detected & switched for "..card.getName():match("(.-)\n"))
         InvertCardFaces(card)
     end
 end
@@ -2503,7 +2503,7 @@ function onObjectEnterScriptingZone(zone, object)
             end
             if deckCandidateTracker[playerColor][containerGUID].count == 7 then
                 deck = getObjectFromGUID(containerGUID)
-                broadcastToAll("Deck set for ".."["..Color.fromString(playerColor):toHex(false).."]"..playerColor.."[-]")
+                --broadcastToAll("Deck set for ".."["..Color.fromString(playerColor):toHex(false).."]"..playerColor.."[-]")
 
                 if deck ~= nil then
                     AddPlayerDeck(playerColor, containerGUID)
