@@ -1,4 +1,4 @@
-moduleVersion = 2.35
+moduleVersion = 2.36
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -307,6 +307,7 @@ function RegisterModule()
 
                 activeFace = 1,
                 doubleFaceType = "none",
+                doubleFaceStates = false,
                 cardFaces = {
                     {basePower = 0, baseToughness = 0, isPlaneswalker = false, pwAbilities = {}, pwCount = 0},
                     {basePower = 0, baseToughness = 0, isPlaneswalker = false, pwAbilities = {}, pwCount = 0} --backface
@@ -1689,6 +1690,12 @@ function ReceiveChangeActiveFace (tar, ply, alt)
     local data = encData["tyrantUnified"]
     local cardData = CheckGetSetCardTable(tar, nil)
 
+    if data["doubleFaceStates"] then
+        local dfcStates = tar.getStates()
+        tar.setState(dfcStates[1]["id"])
+        return
+    end
+
     if data["ownerColor"] ~= nil and data["ownerColor"] ~= "Grey" then 
         broadcastToAll("[888888][EASY MODULES][-]\nLibrary double-faced card detected, reimporting.")
         ReImport(tar, ply, false)
@@ -2079,13 +2086,35 @@ function ParseCardData(object, enc)
         data.hasParsed = true
 
         local nameField = object.getName()
-        local descriptionField = object.getDescription()
+        local stateBasedDFC = object.getStates() ~=  nil -- new DFC cards with states
+        local descriptionField
 
+        --5 different importer standards on the wall
+        --5 different importer standards on the wall
+        --update's out, patch it around
+        --6 different importer standards on the wall
+        if stateBasedDFC then
+            data.doubleFaceStates = true
+            local dfcStates = object.getStates()
+            --part 1
+            descriptionField = object.getName().."\n"..object.getDescription()
+            if descriptionField:find("b%]$") == nil then
+                descriptionField = descriptionField.."\n[b][/b]"
+            end
+            --part 2
+            descriptionField = descriptionField.."\n"..dfcStates[1]["name"].."\n"..dfcStates[1]["description"]
+            if descriptionField:find("b%]$") == nil then
+                descriptionField = descriptionField.."\n[b][/b]"
+            end
+        else
+            descriptionField = object.getDescription()
+        end
+        
         if (descriptionField:find("%[%x%x%x%x%x%x") or nameField:find("%[%x%x%x%x%x%x")) then return end
         --these cause timeouts on the other matches and finds as well as breaking the parser
 
         local oldImportDFC = descriptionField:find("%/%/") ~= nil -- can't type-check DFC properly in old imports
-        local generalDFC = descriptionField:find("%]\n") ~=  nil -- new DFCs have a linebreak after the first set of stats
+        local generalDFC = descriptionField:find("%]\n") ~=  nil or stateBasedDFC -- new DFCs have a linebreak after the first set of stats
         -- new DFCs have the // in the name field instead (turns out this is only for flip/split), might get fixed
 
         if oldImportDFC or generalDFC then --correcting line breaks near stats
