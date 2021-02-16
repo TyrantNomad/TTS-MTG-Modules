@@ -1,4 +1,4 @@
-moduleVersion = 2.36
+moduleVersion = 2.37
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -1692,7 +1692,9 @@ function ReceiveChangeActiveFace (tar, ply, alt)
 
     if data["doubleFaceStates"] then
         local dfcStates = tar.getStates()
-        tar.setState(dfcStates[1]["id"])
+        local newDFCobject = tar.setState(dfcStates[1]["id"])
+        TryTimedEncoding(newDFCobject)
+        dataTable.encoder.call("APIrebuildButtons",{obj=newDFCobject})
         return
     end
 
@@ -2096,21 +2098,25 @@ function ParseCardData(object, enc)
         if stateBasedDFC then
             data.doubleFaceStates = true
             local dfcStates = object.getStates()
-            --part 1
-            descriptionField = object.getName().."\n"..object.getDescription()
-            if descriptionField:find("b%]$") == nil then
-                descriptionField = descriptionField.."\n[b][/b]"
-            end
-            --part 2
-            descriptionField = descriptionField.."\n"..dfcStates[1]["name"].."\n"..dfcStates[1]["description"]
-            if descriptionField:find("b%]$") == nil then
-                descriptionField = descriptionField.."\n[b][/b]"
-            end
+
+            local activeFaceDescription = object.getName().."\n"..object.getDescription()
+            local inactiveFaceDescription = dfcStates[1]["name"].."\n"..dfcStates[1]["description"]
+
+            if activeFaceDescription:find("b%]$") == nil then activeFaceDescription = activeFaceDescription.."\n[b][/b]" end
+            if inactiveFaceDescription:find("b%]$") == nil then inactiveFaceDescription = inactiveFaceDescription.."\n[b][/b]" end
+
+            local activeFace = dfcStates[1]["id"] == 2 and 1 or 2
+            data.activeFace = activeFace
+
+            descriptionField = activeFace == 1 and
+                activeFaceDescription.."\n"..inactiveFaceDescription
+                or
+                inactiveFaceDescription.."\n"..activeFaceDescription
         else
             descriptionField = object.getDescription()
         end
         
-        if (descriptionField:find("%[%x%x%x%x%x%x") or nameField:find("%[%x%x%x%x%x%x")) then return end
+        if (descriptionField:find("%[%x%x%x%x%x%x") or nameField:find("%[%x%x%x%x%x%x") or nameField:find("%]%w%w%w") or descriptionField:find("%]%w%w%w")) then return end
         --these cause timeouts on the other matches and finds as well as breaking the parser
 
         local oldImportDFC = descriptionField:find("%/%/") ~= nil -- can't type-check DFC properly in old imports
@@ -2268,10 +2274,10 @@ function ParseCardData(object, enc)
             end
         end
 
-        data.displayPowTou = autoActivatePowTou and (cardData[1]["typeLine"]:find("reature") ~= nil)
-        data.hasNonLoyaltyCounter = HasKeywordOrNamedCounter(cardData[1]["nameLine"], descriptionField) --maybe refactor this to not use the whole field
-        data.displayPlaneswalkerAbilities = data.cardFaces[1]["pwCount"] > 0
-        data.displayCounters = autoActivateCounter and (data.cardFaces[1].isPlaneswalker or data.hasNonLoyaltyCounter)
+        data.displayPowTou = autoActivatePowTou and (cardData[data.activeFace]["typeLine"]:find("reature") ~= nil)
+        data.hasNonLoyaltyCounter = HasKeywordOrNamedCounter(cardData[data.activeFace]["nameLine"], descriptionField) --maybe refactor this to not use the whole field
+        data.displayPlaneswalkerAbilities = data.cardFaces[data.activeFace]["pwCount"] > 0
+        data.displayCounters = autoActivateCounter and (data.cardFaces[data.activeFace].isPlaneswalker or data.hasNonLoyaltyCounter)
 
         encData["tyrantUnified"] = data
         enc.call("APIobjSetPropData",{obj = object, propID = pID, data = encData})
