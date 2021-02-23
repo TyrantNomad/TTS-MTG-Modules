@@ -495,10 +495,10 @@ function createButtons(t)
     enc = Global.getVar('Encoder')
 
     if enc ~= nil then
-        --ParseCardData(t.obj, enc)
-        
         local encData = enc.call("APIobjGetPropData",{obj=t.obj,propID=pID})
         local data = encData["tyrantUnified"]
+        if not data.hasParsed then InitializeCardData(t.obj, enc) return end
+
         local flip = enc.call("APIgetFlip",{obj=t.obj})
         local scaler = {x=1,y=1,z=1}--t.obj.getScale()
         local activeFace = data.activeFace
@@ -2074,11 +2074,9 @@ end
 
 --Parse Functions
 function ParseCardData(dataTable)
-    local cardData = {{nameLine = "", typeLine = "", textLines = {}, statLine = ""}} -- does this work?
-
     local enc = dataTable.enc
     local object = dataTable.object
-    local nameUrlified = dataTable.nameUrlified
+    local scryfallData = scryfallCardCache[dataTable.nameUrlified]
 
     local encData = enc.call("APIobjGetPropData",{obj=object,propID=pID})
     local data = encData["tyrantUnified"]
@@ -2092,108 +2090,38 @@ function ParseCardData(dataTable)
     if data.hasParsed == false then
         data.hasParsed = true
 
-        local nameField = object.getName()
-        local stateBasedDFC = object.getStates() ~=  nil -- new DFC cards with states
-        local descriptionField
+        local isDFC = scryfallData["card_faces"] ~= nil
+        local faceSources = {}
+        if isDFC then
+            faceSources[1] = scryfallData["card_faces"][1]
+            faceSources[2] = scryfallData["card_faces"][2]
+        else
+            faceSources[1] = scryfallData
+        end
 
-        --5 different importer standards on the wall
-        --5 different importer standards on the wall
-        --update's out, patch it around
-        --6 different importer standards on the wall
+        local stateBasedDFC = object.getStates() ~=  nil -- new DFC cards with states
         if stateBasedDFC then
             data.doubleFaceStates = true
-            local dfcStates = object.getStates()
-
-            local activeFaceDescription = object.getName().."\n"..object.getDescription()
-            local inactiveFaceDescription = dfcStates[1]["name"].."\n"..dfcStates[1]["description"]
-
-            if activeFaceDescription:find("b%]$") == nil then activeFaceDescription = activeFaceDescription.."\n[b][/b]" end
-            if inactiveFaceDescription:find("b%]$") == nil then inactiveFaceDescription = inactiveFaceDescription.."\n[b][/b]" end
-
-            local activeFace = dfcStates[1]["id"] == 2 and 1 or 2
-            data.activeFace = activeFace
-
-            descriptionField = activeFace == 1 and
-                activeFaceDescription.."\n"..inactiveFaceDescription
-                or
-                inactiveFaceDescription.."\n"..activeFaceDescription
-        else
-            descriptionField = object.getDescription()
-        end
-        
-        if (descriptionField:find("%[%x%x%x%x%x%x") or nameField:find("%[%x%x%x%x%x%x") or nameField:find("%]%w%w%w") or descriptionField:find("%]%w%w%w")) then return end
-        --these cause timeouts on the other matches and finds as well as breaking the parser
-
-        local oldImportDFC = descriptionField:find("%/%/") ~= nil -- can't type-check DFC properly in old imports
-        local generalDFC = descriptionField:find("%]\n") ~=  nil or stateBasedDFC -- new DFCs have a linebreak after the first set of stats
-        -- new DFCs have the // in the name field instead (turns out this is only for flip/split), might get fixed
-
-        if oldImportDFC or generalDFC then --correcting line breaks near stats
-            --gotta fix the lack of line break in the old imports
-            if oldImportDFC then
-                local lineBreakIndex = descriptionField:find("%/b") + 2
-                descriptionField = descriptionField:sub(1, lineBreakIndex).."\n"..descriptionField:sub(lineBreakIndex + 1, -1)
-            end
-
-            --...and in new imports as well
-            while true do 
-                local lineBreakIndex = descriptionField:find("[^\n]%[b")
-                if lineBreakIndex then
-                    descriptionField = descriptionField:sub(1, lineBreakIndex).."\n"..descriptionField:sub(lineBreakIndex + 1, -1)
-                else break end
-            end
-        end
-        
-        descriptionField = descriptionField:gsub("−","-") --no, I mean the REAL minus sign
-        local descriptionLines = string.splitUsingFind(descriptionField, "\n")
-
-        if oldImportDFC or generalDFC then --setting data into the correct fields=
-            local faceIndex = 1
-            local faceLine = 0
-            --double-face
-            for index, value in ipairs(descriptionLines) do
-                faceLine = faceLine + 1
-                --if descriptionLines[index]:find("CMC") then -- CMC was removed from name line in new importer
-                if faceLine == 1 then
-                    --but the name is always the first line in each face so this should do it
-                    cardData[faceIndex]["nameLine"] = value
-                elseif faceLine == 2 then
-                    --split cards don't have the hiphenation in the typeline, so we use line count here as well
-                    cardData[faceIndex]["typeLine"] = value
-                elseif descriptionLines[index]:find("^%[") then
-                    cardData[faceIndex]["statLine"] = value
-
-                    if descriptionLines[index + 1] ~= nil then
-                        faceIndex = faceIndex + 1
-                        faceLine = 0
-                        local cardStruct = {nameLine = "", typeLine = "", textLines = {}, statLine = ""}
-                        table.insert(cardData, cardStruct)
-                    end
-                else
-                    table.insert(cardData[faceIndex]["textLines"], value)
-                end
-            end
-        else
-            --single-face
-            cardData[1]["nameLine"] = nameField:match("^(.+)\n")
-            cardData[1]["typeLine"] = nameField:match("\n(.+)$")
-
-            for index, value in ipairs (descriptionLines) do
-                if value:find("%[") then
-                    cardData[1]["statLine"] = value
-                    descriptionLines[index] = nil
-                    cardData[1]["textLines"] = descriptionLines
-                end
-            end
+            data.activeFace = object.getStateId() == 1 and 2 or 1
         end
 
-        if cardData[1]["nameLine"] == nil or cardData[1]["nameLine"]:find("^%w+") == nil or cardData[1]["typeLine"] == nil then return end
+        local cardData = {}--new scryfall-based sectioning
+        for index, value in ipairs (faceSources) do
+            local cardStruct = {nameLine = "", typeLine = "", textLines = {}, power = "", toughness = "", loyalty = ""}    
+            table.insert(cardData, cardStruct)
+            cardData[index]["nameLine"] = faceSources[index]["name"]
+            cardData[index]["typeLine"] = faceSources[index]["type_line"]:gsub("−","-")
+            cardData[index]["textLines"] = string.splitUsingFind(faceSources[index]["oracle_text"],"\n")
+            cardData[index]["power"] = faceSources[index]["power"] ~= nil and faceSources[index]["power"] or nil
+            cardData[index]["toughness"] = faceSources[index]["toughness"] ~= nil and faceSources[index]["toughness"] or nil
+            cardData[index]["loyalty"] = faceSources[index]["loyalty"] ~= nil and faceSources[index]["loyalty"] or nil
+        end
 
-        for index, value in ipairs (cardData) do
+        for index, value in ipairs (cardData) do --goes off once for each face
             --planeswalker check
             if value["typeLine"]:find("laneswalker") then -- who knows if that P's gonna be capitalized
                 data.cardFaces[index]["isPlaneswalker"] = true
-                local loyaltyValue = value["statLine"]:match("b%](%d+)%[")
+                local loyaltyValue = cardData[index]["loyalty"] ~= nil and cardData[index]["loyalty"] or 0
                 if loyaltyValue ~= nil then data.namedCounters = tonumber(loyaltyValue) end
                 local pwAbilityCount = 0 --used to count amount of PW abilities vs amount of slots
 
@@ -2204,7 +2132,7 @@ function ParseCardData(dataTable)
 
                     if tooltipIndex ~= nil then
                         pwAbilityCount = pwAbilityCount + 1
-                        abilityDelta = innerValue:sub(1, tooltipIndex)
+                        abilityDelta = innerValue:sub(1, tooltipIndex):gsub("−","-")
                         abilityDelta = abilityDelta:find("[xX]+") ~= nil and "X" or tonumber(abilityDelta)
                     end
 
@@ -2228,17 +2156,17 @@ function ParseCardData(dataTable)
                     end
                 end
             else --power/toughness
-                data.cardFaces[index]["basePower"] = cardData[index]["statLine"]:match("([%d%*xX]+)/")
-                data.cardFaces[index]["baseToughness"] = cardData[index]["statLine"]:match("/([%d%*xX]+)")
+                data.cardFaces[index]["basePower"] = cardData[index]["power"] ~= nil and cardData[index]["power"] or nil
+                data.cardFaces[index]["baseToughness"] = cardData[index]["toughness"] ~= nil and cardData[index]["toughness"] or nil
             end
         end
 
-        if true then --plus one section, we only care about the front face
-            if autoActivatePlusOne and cardData[1]["typeLine"]:find("reature") then
-                local selfReferralString = {"it", cardData[1]["nameLine"]:match("^%w+")}
+        if true then --plus one section, we only care about the active face
+            if autoActivatePlusOne and cardData[data.activeFace]["typeLine"]:find("reature") then
+                local selfReferralString = {"it", cardData[data.activeFace]["nameLine"]:match("^%w+")}
 
                 for index, nameString in ipairs (selfReferralString) do
-                    for innerIndex, textLine in ipairs (cardData[1]["textLines"]) do
+                    for innerIndex, textLine in ipairs (cardData[data.activeFace]["textLines"]) do
                         if textLine:find("[%+%-]1/[%+%-]1 counters? on "..nameString) then
                             data.displayPlusOne = autoActivatePlusOne
                             break --only breaks out of one loop
@@ -2248,19 +2176,17 @@ function ParseCardData(dataTable)
             end
         end
 
-        if oldImportDFC then 
-            data.doubleFaceType = "oldImport"
-        elseif generalDFC then
+        if isDFC then
             frontFaceSplitCheck = cardData[1]["typeLine"]:find("nstant") and true or (cardData[1]["typeLine"]:find("orcery") and true)
             backFaceSplitCheck = cardData[2]["typeLine"]:find("nstant") and true or (cardData[2]["typeLine"]:find("orcery") and true)
             
             if frontFaceSplitCheck and backFaceSplitCheck then
                 data.doubleFaceType = "split"
             else
-                flipCardCheck = descriptionField:find("lip it") or descriptionField:find("lip "..cardData[1]["nameLine"]:match("^%w+"))
+                flipCardCheck = faceSources[data.activeFace]["oracle_text"]:find("lip it") or faceSources[data.activeFace]["oracle_text"]:find("lip "..cardData[1]["nameLine"]:match("^%w+"))
                 if flipCardCheck ~= nil then
                     data.doubleFaceType = "flip"
-                elseif descriptionField:find("ransform") == nil then
+                elseif faceSources[1]["oracle_text"]:find("ransform") == nil then
                     --alternatively: one side is a non-legendary land
                     data.doubleFaceType = "modal"
                 elseif cardData[2]["typeLine"]:find("ldrazi") ~= nil then
@@ -2280,12 +2206,13 @@ function ParseCardData(dataTable)
         end
 
         data.displayPowTou = autoActivatePowTou and (cardData[data.activeFace]["typeLine"]:find("reature") ~= nil)
-        data.hasNonLoyaltyCounter = HasKeywordOrNamedCounter(cardData[data.activeFace]["nameLine"], descriptionField) --maybe refactor this to not use the whole field
+        data.hasNonLoyaltyCounter = HasKeywordOrNamedCounter(cardData[data.activeFace]["nameLine"], faceSources[data.activeFace]["oracle_text"]) --maybe refactor this to not use the whole field
         data.displayPlaneswalkerAbilities = data.cardFaces[data.activeFace]["pwCount"] > 0
         data.displayCounters = autoActivateCounter and (data.cardFaces[data.activeFace].isPlaneswalker or data.hasNonLoyaltyCounter)
 
         encData["tyrantUnified"] = data
         enc.call("APIobjSetPropData",{obj = object, propID = pID, data = encData})
+        enc.call("APIrebuildButtons",{obj=object})
     end
 end
 
@@ -2369,7 +2296,7 @@ function TryEncoding(object)
 
         InitializeCardData(object, enc)
 
-        enc.call("APIrebuildButtons",{obj=object})
+        --enc.call("APIrebuildButtons",{obj=object})
         return
     end
 end
@@ -2377,8 +2304,8 @@ end
 function FetchScryfallData (object)
     cardName = UrlifyNameField(object)
 
-    if cardName ~= nil and cardName ~= "" then
-        broadcastToAll("fetching")
+    if cardName ~= nil and cardName ~= "" and scryfallCardCache[cardName] == nil then
+        --broadcastToAll("fetching")
         WebRequest.get("https://api.scryfall.com/cards/named?fuzzy="..cardName, self, "StoreScryfallData")
     end
     
@@ -2394,6 +2321,7 @@ function StoreScryfallData (requestedData)
         if key == "card_faces" then
             isDFC = true
             scryfallCardCache[UrlifyCardName(value[1]["name"])] = decodedData
+            scryfallCardCache[UrlifyCardName(value[2]["name"])] = decodedData
         end
 
         if key == "all_parts" then
@@ -2484,11 +2412,11 @@ end
 
 function TryTimedParse(dataTable)
     urlifiedName = UrlifyNameField(dataTable.object)
-    if scryfallCardCache[] ~= nil then
+    if scryfallCardCache[urlifiedName] ~= nil then
         Timer.destroy(dataTable.object.getGUID().."parseTimer")
         dataTable["nameUrlified"] = urlifiedName
-        
-        broadcastToAll("fetch successful")
+
+        --broadcastToAll("fetch successful")
         ParseCardData(dataTable)
     end
 end
