@@ -50,6 +50,7 @@ autoActivatePowTou = true
 autoActivatePlusOne = true
 autoActivateDFC = true
 autoActivateOwnership = true
+scryfallCardCache = {}
 function ProcessSavedData(saved_data)
     if saved_data ~= nil and saved_data ~= "" then
         --print(saved_data)
@@ -494,7 +495,7 @@ function createButtons(t)
     enc = Global.getVar('Encoder')
 
     if enc ~= nil then
-        ParseCardData(t.obj, enc)
+        --ParseCardData(t.obj, enc)
         
         local encData = enc.call("APIobjGetPropData",{obj=t.obj,propID=pID})
         local data = encData["tyrantUnified"]
@@ -1693,7 +1694,7 @@ function ReceiveChangeActiveFace (tar, ply, alt)
     if data["doubleFaceStates"] then
         local dfcStates = tar.getStates()
         local newDFCobject = tar.setState(dfcStates[1]["id"])
-        TryTimedEncoding(newDFCobject)
+        TryEncoding(newDFCobject)
         dataTable.encoder.call("APIrebuildButtons",{obj=newDFCobject})
         return
     end
@@ -2072,8 +2073,12 @@ function ReEnableEmblemsAndTokens ()
 end
 
 --Parse Functions
-function ParseCardData(object, enc)
+function ParseCardData(dataTable)
     local cardData = {{nameLine = "", typeLine = "", textLines = {}, statLine = ""}} -- does this work?
+
+    local enc = dataTable.enc
+    local object = dataTable.object
+    local nameUrlified = dataTable.nameUrlified
 
     local encData = enc.call("APIobjGetPropData",{obj=object,propID=pID})
     local data = encData["tyrantUnified"]
@@ -2331,7 +2336,7 @@ end
 --Auto Functions
 function onObjectDropped (playerColor, object)
     if autoActivateModule == false or (autoActivatePlayerSettings[Player[playerColor].steam_id] ~= nil and autoActivatePlayerSettings[Player[playerColor].steam_id] == false) then return end
-    TryTimedEncoding(object)
+    TryEncoding(object)
 end
 
 function onObjectSpawn(obj)
@@ -2346,7 +2351,7 @@ function onObjectSpawn(obj)
     end
 end
 
-function TryTimedEncoding(object)
+function TryEncoding(object)
     if object.tag ~= "Card" then return end
     if object.getVar('noencode') ~= nil and object.getVar('noencode') == true then return end
 
@@ -2367,6 +2372,56 @@ function TryTimedEncoding(object)
         enc.call("APIrebuildButtons",{obj=object})
         return
     end
+end
+
+function FetchScryfallData (object)
+    cardName = UrlifyNameField(object)
+
+    if cardName ~= nil and cardName ~= "" then
+        broadcastToAll("fetching")
+        WebRequest.get("https://api.scryfall.com/cards/named?fuzzy="..cardName, self, "StoreScryfallData")
+    end
+    
+end
+
+function StoreScryfallData (requestedData)
+    if requestedData.text then
+        decodedData = JSON.decode(requestedData.text)
+    else return end
+
+    local isDFC = false
+    for key,value in pairs(decodedData) do
+        if key == "card_faces" then
+            isDFC = true
+            scryfallCardCache[UrlifyCardName(value[1]["name"])] = decodedData
+        end
+
+        if key == "all_parts" then
+            for innerKey,innerValue in pairs(value) do
+                local cardType = innerValue["type_line"]:lower()
+                if cardType:find("emblem") or cardType:find("token") then
+                    scryfallCardCache[UrlifyCardName(innerValue["name"])] = innerValue
+                end
+            end
+        end
+    end
+
+    if not isDFC then scryfallCardCache[UrlifyCardName(decodedData["name"])] = decodedData end
+end
+
+function UrlifyNameField (object)
+    local nameField = string.splitUsingFind(object.getName(),"\n")
+    if nameField[1] == nil or nameField[1] == "" then return end
+
+    local cardName = UrlifyCardName(nameField[1])
+    return cardName
+end
+
+function UrlifyCardName (cardName)
+    cardName = cardName:gsub("%[.-%]",""):lower()
+    cardName = cardName:gsub("[%,%']","")
+    cardName = cardName:gsub("%s","-")
+    return cardName
 end
 
 function AutoActivate(dataTable)
@@ -2394,8 +2449,19 @@ function AutoActivate(dataTable)
 end
 
 function InitializeCardData(object, enc)
-    ParseCardData(object, enc)
+    FetchScryfallData(object)
     TryAssignOwnership(object, enc)
+
+    dataTable = {object = object, enc = enc}
+    Timer.destroy(object.getGUID().."parseTimer")
+    Timer.create({
+        identifier = object.getGUID().."parseTimer",
+        function_name = "TryTimedParse",
+        function_owner = self,
+        parameters = dataTable,
+        delay = 0.5,
+        repetitions = 10
+    })
 end
 
 function TryAssignOwnership(object, enc)
@@ -2416,6 +2482,16 @@ function TryAssignOwnership(object, enc)
     enc.call("APIobjSetPropData",{obj = object, propID = pID, data = encData})
 end
 
+function TryTimedParse(dataTable)
+    urlifiedName = UrlifyNameField(dataTable.object)
+    if scryfallCardCache[] ~= nil then
+        Timer.destroy(dataTable.object.getGUID().."parseTimer")
+        dataTable["nameUrlified"] = urlifiedName
+        
+        broadcastToAll("fetch successful")
+        ParseCardData(dataTable)
+    end
+end
 --Deck Tracking Functions
 deckCandidateTracker = {}
 deckPlayerPairs = {}
