@@ -2286,7 +2286,6 @@ function TryEncoding(object)
     if enc == nil then return end
 
     if enc.call("APIobjectExists",{obj=object}) == false then
-        --noencode doesn't exist
         enc.call("APIencodeObject",{obj=object})
     end
 
@@ -2295,20 +2294,41 @@ function TryEncoding(object)
         enc.call("APIobjEnableProp",{obj=object, propID = pID})
 
         InitializeCardData(object, enc)
-
-        --enc.call("APIrebuildButtons",{obj=object})
         return
     end
 end
 
 function FetchScryfallData (object)
     cardName = UrlifyNameField(object)
+    if scryfallCardCache[cardName] ~= nil or queryNameTable[cardName] ~= nil then return end
 
+    table.insert(scryfallQueryTable, cardName)
+    queryNameTable[cardName] = cardName
+    --used to check for redundancy, cleaned up in storescryfalldata
+
+    Timer.destroy("ScryfallQueryTimer")
+    Timer.create({
+        identifier = "ScryfallQueryTimer",
+        function_name = "TimedScryfallQuery",
+        function_owner = self,
+        delay = 0.5,
+        repetitions = 0
+    })
+end
+
+queryNameTable = {}
+scryfallQueryTable = {}
+function TimedScryfallQuery ()
+    if scryfallQueryTable[1] == nil then
+        Timer.destroy("ScryfallQueryTimer")
+        return
+    end
+
+    local cardName = table.remove(scryfallQueryTable, 1)
+    --broadcastToAll("querying "..cardName)
     if cardName ~= nil and cardName ~= "" and scryfallCardCache[cardName] == nil then
-        --broadcastToAll("fetching")
         WebRequest.get("https://api.scryfall.com/cards/named?fuzzy="..cardName, self, "StoreScryfallData")
     end
-    
 end
 
 function StoreScryfallData (requestedData)
@@ -2322,6 +2342,9 @@ function StoreScryfallData (requestedData)
             isDFC = true
             scryfallCardCache[UrlifyCardName(value[1]["name"])] = decodedData
             scryfallCardCache[UrlifyCardName(value[2]["name"])] = decodedData
+
+            queryNameTable[UrlifyCardName(value[1]["name"])] = nil
+            queryNameTable[UrlifyCardName(value[2]["name"])] = nil
         end
 
         if key == "all_parts" then
@@ -2334,7 +2357,10 @@ function StoreScryfallData (requestedData)
         end
     end
 
-    if not isDFC then scryfallCardCache[UrlifyCardName(decodedData["name"])] = decodedData end
+    if not isDFC then
+        scryfallCardCache[UrlifyCardName(decodedData["name"])] = decodedData
+        queryNameTable[UrlifyCardName(decodedData["name"])] = nil
+    end
 end
 
 function UrlifyNameField (object)
@@ -2387,7 +2413,7 @@ function InitializeCardData(object, enc)
         function_name = "TryTimedParse",
         function_owner = self,
         parameters = dataTable,
-        delay = 0.5,
+        delay = 0.15,
         repetitions = 10
     })
 end
@@ -2416,10 +2442,10 @@ function TryTimedParse(dataTable)
         Timer.destroy(dataTable.object.getGUID().."parseTimer")
         dataTable["nameUrlified"] = urlifiedName
 
-        --broadcastToAll("fetch successful")
         ParseCardData(dataTable)
     end
 end
+
 --Deck Tracking Functions
 deckCandidateTracker = {}
 deckPlayerPairs = {}
