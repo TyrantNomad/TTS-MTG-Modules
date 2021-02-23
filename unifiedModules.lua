@@ -108,7 +108,7 @@ end
 
 function ForcePlaceholderDependency(placeholderCode, moduleName)
     local placeholderCode = placeholderCode.text
-    spawnParams = {
+    local spawnParams = {
         type = "reversi_chip",
         name = "[FF0000]PLACEHOLDER [-]"..moduleName,
         description = "Just go [FFCC00]get the real thing on the Steam Workshop[-] already\n [FF0000]...YOU STINKY LAZY-BUTT",
@@ -1867,6 +1867,7 @@ end
 copyCount = 0
 function MakeExactCopy (tar, ply, alt)
     --based on Exact Copy by Tipsy Hobbit (steam_id: 13465982)
+    
     enc = Global.getVar('Encoder')
     if enc ~= nil then
         local encData = enc.call("APIobjGetPropData",{obj = tar, propID = pID})
@@ -1930,6 +1931,8 @@ function MakeExactCopy (tar, ply, alt)
             delay = 3
         })
     end
+    --cardName = UrlifyNameField(tar)
+    --CreateTokenObject(scryfallCardCache[cardName],tar)
 end
 
 function SetExactCopyData (dataTable)
@@ -2070,6 +2073,34 @@ end
 
 function ReEnableEmblemsAndTokens ()
     lockEmblemsAndTokens = false
+end
+
+function CreateTokenObject(cardData, originalObject)
+    local objectName = originalObject.getName()
+    local objectDescription = originalObject.getDescription()
+    
+    local originalObjectData = originalObject.getCustomObject()
+    local imageAddress = originalObjectData["face"] ~= nil and originalObjectData["face"] or ""
+
+
+    local createdToken = spawnObject({
+        type = "Custom_Tile",
+        position = {0, 5, 0},
+        callback = "",
+        callback_owner = self,
+        scale = {1.45, 1, 1.45}
+    })
+
+    createdToken.setCustomObject({
+        type = 3,
+        image = imageAddress,
+        thickness = 0.15,
+    })
+
+    createdToken.setName(objectName)
+    createdToken.setDescription(objectDescription)
+
+    TryEncoding(createdToken, true)
 end
 
 --Parse Functions
@@ -2217,6 +2248,7 @@ function ParseCardData(dataTable)
 end
 
 function string.splitUsingFind(text, separator)
+    if text == nil or text == "" then return {""} end
     --by @BoneWhite#6514 (discord id)
     local splitTable = {}
     while true do
@@ -2278,6 +2310,12 @@ function onObjectSpawn(obj)
     end
 end
 
+--[[
+function TryEncoding(object)
+    TryEncoding(object, false)
+end
+function TryEncoding(object, overrideTypeCheck)
+    if not overrideTypeCheck and object.tag ~= "Card" then return end--]]
 function TryEncoding(object)
     if object.tag ~= "Card" then return end
     if object.getVar('noencode') ~= nil and object.getVar('noencode') == true then return end
@@ -2298,8 +2336,8 @@ function TryEncoding(object)
     end
 end
 
-function FetchScryfallData (object)
-    cardName = UrlifyNameField(object)
+function FetchScryfallData (var)
+    local cardName = type(var) == "userdata" and UrlifyNameField(var) or UrlifyCardName(var)
     if scryfallCardCache[cardName] ~= nil or queryNameTable[cardName] ~= nil then return end
 
     table.insert(scryfallQueryTable, cardName)
@@ -2311,7 +2349,7 @@ function FetchScryfallData (object)
         identifier = "ScryfallQueryTimer",
         function_name = "TimedScryfallQuery",
         function_owner = self,
-        delay = 0.5,
+        delay = 0.125,
         repetitions = 0
     })
 end
@@ -2350,28 +2388,30 @@ function StoreScryfallData (requestedData)
         if key == "all_parts" then
             for innerKey,innerValue in pairs(value) do
                 local cardType = innerValue["type_line"]:lower()
-                if cardType:find("emblem") or cardType:find("token") then
-                    scryfallCardCache[UrlifyCardName(innerValue["name"])] = innerValue
+                if cardType:find("emblem") --[[or cardType:find("token")--]] then -- ignoring token data, it's not identifiable by name
+                    FetchScryfallData(innerValue["name"])
                 end
             end
         end
     end
 
     if not isDFC then
-        scryfallCardCache[UrlifyCardName(decodedData["name"])] = decodedData
         queryNameTable[UrlifyCardName(decodedData["name"])] = nil
+        --if decodedData["type_line"]:lower():find("token") then return end -- do not store token data, it's not identifiable by name
+        --gives bad data sometimes, but just keeps querying if we don't store it
+        scryfallCardCache[UrlifyCardName(decodedData["name"])] = decodedData
     end
 end
 
 function UrlifyNameField (object)
     local nameField = string.splitUsingFind(object.getName(),"\n")
-    if nameField[1] == nil or nameField[1] == "" then return end
 
     local cardName = UrlifyCardName(nameField[1])
     return cardName
 end
 
 function UrlifyCardName (cardName)
+    if cardName == nil or cardName == "" then return "" end
     cardName = cardName:gsub("%[.-%]",""):lower()
     cardName = cardName:gsub("[%,%']","")
     cardName = cardName:gsub("%s","-")
@@ -2406,15 +2446,15 @@ function InitializeCardData(object, enc)
     FetchScryfallData(object)
     TryAssignOwnership(object, enc)
 
-    dataTable = {object = object, enc = enc}
+    dataTable = {object = object, enc = enc, GUID = object.getGUID()}
     Timer.destroy(object.getGUID().."parseTimer")
     Timer.create({
         identifier = object.getGUID().."parseTimer",
         function_name = "TryTimedParse",
         function_owner = self,
         parameters = dataTable,
-        delay = 0.15,
-        repetitions = 10
+        delay = 0.25,
+        repetitions = 40
     })
 end
 
@@ -2437,9 +2477,14 @@ function TryAssignOwnership(object, enc)
 end
 
 function TryTimedParse(dataTable)
+    if dataTable.object == nil then --nil check for when objects are deleted or grouped while waiting for parsing
+        Timer.destroy(dataTable.GUID.."parseTimer")
+        return
+    end
+    
     urlifiedName = UrlifyNameField(dataTable.object)
     if scryfallCardCache[urlifiedName] ~= nil then
-        Timer.destroy(dataTable.object.getGUID().."parseTimer")
+        Timer.destroy(dataTable.GUID.."parseTimer")
         dataTable["nameUrlified"] = urlifiedName
 
         ParseCardData(dataTable)
