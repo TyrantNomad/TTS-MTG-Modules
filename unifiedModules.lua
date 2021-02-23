@@ -1,4 +1,4 @@
-moduleVersion = 2.37
+moduleVersion = 2.50
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
