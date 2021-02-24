@@ -2373,7 +2373,8 @@ end
 
 function StoreScryfallData (requestedData)
     if requestedData.text then
-        decodedData = JSON.decode(requestedData.text)
+        --decodedData = JSON.decode(requestedData.text)
+        decodedData = LuaifyJSON(requestedData.text)
     else return end
 
     local isDFC = false
@@ -2403,6 +2404,104 @@ function StoreScryfallData (requestedData)
         --gives bad data sometimes, but just keeps querying if we don't store it
         scryfallCardCache[UrlifyCardName(decodedData["name"])] = decodedData
     end
+end
+
+function LuaifyJSON(jsonString)
+    jsonString = jsonString:sub(2, jsonString:find("}$")-1)
+    jsonString = jsonString:gsub('\\"',"\\'")
+    --this should remove the start and end {} & avoid ending strings early
+
+    local luaTable = {}
+    while jsonString ~= "" do
+        luaTable, jsonString = AddParsedKey(jsonString, luaTable, count)
+    end
+    return luaTable
+end
+
+function AddParsedKey (jsonString, luaTable, debug)
+    if jsonString == "" then return end
+    
+    --log(debug)
+    local valueKey
+    valueKey, jsonString = KeyParse(jsonString)
+    
+    luaTable[valueKey], jsonString = ParseJSON(jsonString)
+    return luaTable, jsonString
+end
+
+function ParseJSON(jsonString)
+    --log("||"..jsonString:sub(1, 40).."||")
+    if jsonString:find('^%[') then
+        --log("index table start")
+        parsedValue, jsonString = IndexTableParse(jsonString)
+    elseif jsonString:find('^{') then
+        --log("key table start")
+        parsedValue, jsonString = KeyTableParse(jsonString)
+    elseif jsonString:find('^"') then
+        parsedValue, jsonString = StringParse(jsonString)
+    else
+        parsedValue, jsonString = ValueParse(jsonString)
+    end
+
+    local commaIndex = jsonString:find("^%,")
+    if commaIndex then jsonString = jsonString:sub(commaIndex+1) end
+    --shitty workaround?
+
+    return parsedValue, jsonString
+end
+
+function KeyParse(jsonString)
+    local startIndex,endIndex = jsonString:find('^"[%w_]-":')
+    
+    local valueKey = jsonString:sub(startIndex + 1, endIndex - 2)
+    --log("keyParse "..valueKey)
+    return valueKey, jsonString:sub(endIndex + 1)
+end
+
+function StringParse(jsonString)
+    local parsedValue = '"'
+    jsonString = jsonString:sub(2) --this is hilarious
+    local startIndex,endIndex = jsonString:find('"')
+    parsedValue = parsedValue..jsonString:sub(1, endIndex)
+    --log("stringParse "..parsedValue)
+    return parsedValue, jsonString:sub(endIndex + 1)
+end
+
+function ValueParse(jsonString)
+    local startIndex,endIndex = jsonString:find('^.-[,%]%}]')
+    local parsedValue = jsonString:sub(1, endIndex-1)
+    --log("valueParse "..parsedValue)
+    return parsedValue, jsonString:sub(endIndex)
+end
+
+function IndexTableParse(jsonString)
+    local luaTable = {}
+    jsonString = jsonString:sub(2)
+
+    while not jsonString:find("^%]") do
+        
+        innerValue, jsonString = ParseJSON(jsonString)
+        table.insert(luaTable, innerValue)
+    end
+
+    jsonString = jsonString:sub(2)
+    --log("index table end")
+    return luaTable, jsonString
+end
+
+function KeyTableParse(jsonString)
+    local luaTable = {}
+    local trackingString = jsonString:sub(1,15)
+    --log("starting keyTable at ||"..trackingString)
+    jsonString = jsonString:sub(2)
+    while not jsonString:find("^%}") do
+        luaTable, jsonString = AddParsedKey(jsonString, luaTable, "xxx")
+    end
+
+    jsonString = jsonString:sub(2)
+    
+    --log("ending keyTable at ||"..trackingString)
+    return luaTable, jsonString
 end
 
 function UrlifyNameField (object)
