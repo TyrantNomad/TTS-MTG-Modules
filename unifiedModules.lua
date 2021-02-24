@@ -1,4 +1,4 @@
-moduleVersion = 2.50
+moduleVersion = 2.70
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -2133,7 +2133,8 @@ function ParseCardData(dataTable)
             local stateBasedDFC = object.getStates() ~=  nil -- new DFC cards with states
             if stateBasedDFC then
                 data.doubleFaceStates = true
-                data.activeFace = object.getStateId() == 1 and 2 or 1
+                data.activeFace = object.getStateId()-- == 1 and 2 or 1
+                --could it be? the end of inverted faces???
             end
 
             local cardData = {}--new scryfall-based sectioning
@@ -2373,7 +2374,6 @@ end
 
 function StoreScryfallData (requestedData)
     if requestedData.text then
-        --decodedData = JSON.decode(requestedData.text)
         decodedData = LuaifyJSON(requestedData.text)
     else return end
 
@@ -2419,9 +2419,6 @@ function LuaifyJSON(jsonString)
 end
 
 function AddParsedKey (jsonString, luaTable, debug)
-    if jsonString == "" then return end
-    
-    --log(debug)
     local valueKey
     valueKey, jsonString = KeyParse(jsonString)
     
@@ -2459,10 +2456,10 @@ function KeyParse(jsonString)
 end
 
 function StringParse(jsonString)
-    local parsedValue = '"'
+    local parsedValue = ''
     jsonString = jsonString:sub(2) --this is hilarious
     local startIndex,endIndex = jsonString:find('"')
-    parsedValue = parsedValue..jsonString:sub(1, endIndex)
+    parsedValue = parsedValue..jsonString:sub(1, endIndex-1):gsub("\\n","\n")
     --log("stringParse "..parsedValue)
     return parsedValue, jsonString:sub(endIndex + 1)
 end
