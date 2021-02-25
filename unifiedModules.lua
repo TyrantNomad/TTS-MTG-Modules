@@ -18,6 +18,8 @@ function onload(saved_data)
     InitializeDeckTables()
     TryAutoRegister(dataTable)
     CreateModuleChipButtons()
+
+    Wait.time(BroadcastSettings, 6)
  end
 
 function SelfUpdateCheck(webRequest)
@@ -347,9 +349,6 @@ function RegisterModule()
         }
         enc.call("APIregisterValue",value)
 
-        BroadcastSettings()
-        broadcastToAll("Type [FFCC00]'modules help'[-] to list commands")
-
         RefreshModuleChipButtons()
     else
         broadcastToAll("[888888][EASY MODULES][-]\nNo encoder found. You need [FFCC00]Encoder v4.20+ by Tipsy Hobbit (steam_id: 13465982)[-] to use the module")
@@ -436,7 +435,7 @@ function onChat(message, player)
             broadcastToAll("[BBBBBB]Auto-encoding "..targetString.."for ["..hexColor.."]"..player.steam_name.."[-]")
         end
 
-        if changedAnything then BroadcastSettings() end
+        if changedAnything then BroadcastToAll("[888888][EASY MODULES][-] Settings Changed - Type 'module settings' to review") end
     end
 
     if string.find(message, '^module') ~= nil then
@@ -457,6 +456,8 @@ function BroadcastSettings()
 
     broadcastToAll("Auto PowTou "..autoPowTouText.."     ".."Auto PlusOne "..autoPlusOneText.."     ".."Auto Counter "..autoCounterText)
     broadcastToAll("Auto Double-faced "..autoDFCtext.."     ".."Auto Ownership "..autoOwnershipText.."\n")
+
+    broadcastToAll("Type [FFCC00]'module help'[-] to list commands")
 
     if autoActivateModule == false then broadcastToAll("\n[FF0000]Auto-encoding is [FFFFFF]OFF[-] - Nothing will activate automatically.\nType [FFFFFF]'auto encode on'[-] to turn it back on\n") 
     else 
@@ -482,8 +483,8 @@ function BroadcastCommands()
     broadcastToAll("\nauto     [BBBBBB]player[-]     on / off[888888] - Changes auto-encoding settings for who sent the message")
     broadcastToAll("\nauto     [BBBBBB]encode / dfc / owner[-]     on / off[888888] - Changes auto-activation settings")
     broadcastToAll("auto     [BBBBBB]powtou / plusone / counter[-]     on / off[888888] - Changes auto-activation settings")
-    broadcastToAll("\nmodules     settings[888888] - Shows the current auto-activation settings")
-    broadcastToAll("modules     help[888888] - Spams chat with 10 lines of text")
+    broadcastToAll("\nmodule     settings[888888] - Shows the current auto-activation settings")
+    broadcastToAll("module     help[888888] - Spams chat with 10 lines of text")
     broadcastToAll("[888888]You can [BBBBBB]stack commands[-] with the same starting word: [BBBBBB]'auto powtou plusone off'[-]")
 end
 
@@ -2117,7 +2118,6 @@ function ParseCardData(dataTable)
     if data == nil then
         local dataTable = {obj = object}
         data = AutoActivate(dataTable)
-        --return
     end
     
     if data.hasParsed == false then
@@ -2386,39 +2386,8 @@ end
 
 function ProcessScryfallData (requestedData)
     if requestedData.text then
-        --decodedData = LuaifyJSON(requestedData.text)
-        --decodedData = LuaifyJSONdelayed(requestedData.text)
         StartLuaifyJSONcoroutine(requestedData.text)
     else return end
-
-    --[[
-    local isDFC = false
-    for key,value in pairs(decodedData) do
-        if key == "card_faces" then
-            isDFC = true
-            scryfallCardCache[UrlifyCardName(value[1]["name"])] = decodedData
-            scryfallCardCache[UrlifyCardName(value[2]["name"])] = decodedData
-
-            queryNameTable[UrlifyCardName(value[1]["name"])] = nil
-            queryNameTable[UrlifyCardName(value[2]["name"])] = nil
-        end
-
-        if key == "all_parts" then
-            for innerKey,innerValue in pairs(value) do
-                local cardType = innerValue["type_line"]:lower()
-                if cardType:find("emblem") then -- ignoring token data, it's not identifiable by name
-                    FetchScryfallData(innerValue["name"])
-                end
-            end
-        end
-    end
-
-    if not isDFC then
-        queryNameTable[UrlifyCardName(decodedData["name"])] = nil
-        --if decodedData["type_line"]:lower():find("token") then return end -- do not store token data, it's not identifiable by name
-        --gives bad data sometimes, but just keeps querying if we don't store it
-        scryfallCardCache[UrlifyCardName(decodedData["name"])] = decodedData
-    end--]]
 end
 
 function StoreScryfallData (luaTable)
@@ -2431,15 +2400,6 @@ function StoreScryfallData (luaTable)
 
             queryNameTable[UrlifyCardName(value[1]["name"])] = nil
             queryNameTable[UrlifyCardName(value[2]["name"])] = nil
-        end
-
-        if key == "all_parts" then
-            for innerKey,innerValue in pairs(value) do
-                local cardType = innerValue["type_line"]:lower()
-                if cardType:find("emblem") --[[or cardType:find("token")--]] then -- ignoring token data, it's not identifiable by name
-                    FetchScryfallData(innerValue["name"])
-                end
-            end
         end
     end
 
@@ -2466,10 +2426,6 @@ end
 luaifyWaitID = nil
 function StartLuaifyJSONcoroutine(jsonString)
     table.insert(JSONqueue, jsonString)
-    --log(coroutine.status(LuaifyJSONcoroutine))
-    --if coroutine.status(LuaifyJSONcoroutine) ~= "running" then
-        --startLuaCoroutine(self, "LuaifyJSONcoroutine")
-    --end
 
     if luaifyWaitID ~= nil then Wait.stop(luaifyWaitID) end
     if LuaifyJSONcoroutineInstance == nil or coroutine.status(LuaifyJSONcoroutineInstance) == "dead" then LuaifyJSONcoroutineInstance = coroutine.create(LuaifyJSONcoroutineFunction) end
@@ -2542,7 +2498,7 @@ end
 
 function KeyParse(jsonString)
     --log("|||"..jsonString:sub(1, 40).."||")
-    local startIndex,endIndex = jsonString:find('^"[%w_]-":')
+    local startIndex,endIndex = jsonString:find('^".-":')
     
     local valueKey = jsonString:sub(startIndex + 1, endIndex - 2)
     --log("keyParse "..valueKey)
@@ -2559,8 +2515,15 @@ function StringParse(jsonString)
 end
 
 function ValueParse(jsonString)
-    local startIndex,endIndex = jsonString:find('^.-[,%]%}]')
-    local parsedValue = jsonString:sub(1, endIndex-1)
+    --log("||"..jsonString:sub(1, 40).."||")
+    local startIndex,endIndex = jsonString:find('^.-[,%]}$]')
+    
+    if not startIndex then 
+        startIndex, endIndex = jsonString:find(".$") 
+        endIndex = endIndex + 1
+    end
+
+    local parsedValue  = jsonString:sub(1, endIndex-1)
     --log("valueParse "..parsedValue)
     return parsedValue, jsonString:sub(endIndex)
 end
@@ -2585,7 +2548,7 @@ function KeyTableParse(jsonString)
     local trackingString = jsonString:sub(1,15)
     --log("starting keyTable at ||"..trackingString)
     jsonString = jsonString:sub(2)
-    while not jsonString:find("^%}") do
+    while not jsonString:find("^}") do
         luaTable, jsonString = AddParsedKey(jsonString, luaTable, "xxx")
     end
 
@@ -2605,7 +2568,7 @@ end
 function UrlifyCardName (cardName)
     if cardName == nil or cardName == "" then return "" end
     cardName = cardName:gsub("%[.-%]",""):lower()
-    cardName = cardName:gsub("[%,%']","")
+    cardName = cardName:gsub("[,%']","")
     cardName = cardName:gsub("%s","-")
     return cardName
 end
@@ -2638,7 +2601,7 @@ function InitializeCardData(object, enc)
     FetchScryfallData(object)
     TryAssignOwnership(object, enc)
 
-    dataTable = {object = object, enc = enc, GUID = object.getGUID()}
+    local dataTable = {object = object, enc = enc, GUID = object.getGUID()}
     if object.getName() == "" then ParseCardData(dataTable) return end
     Timer.destroy(object.getGUID().."parseTimer")
     Timer.create({
@@ -2705,8 +2668,8 @@ function onObjectEnterContainer(container, object)
     if container.getTable("tyrantUnified") ~= nil or object.getTable("tyrantUnified") == nil then return end
     if object.tag ~= "Card" and object.tag ~= "Container" then return end
 
-    sourceTable = CheckGetSetCardTable(object, nil)
-    dataTable = {sourceTable = sourceTable, object = container}
+    local sourceTable = CheckGetSetCardTable(object, nil)
+    local dataTable = {sourceTable = sourceTable, object = container}
     
     Timer.destroy(container.getGUID().."setDataTimer")
     Timer.create({
