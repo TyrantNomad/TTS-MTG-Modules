@@ -51,10 +51,12 @@ autoActivatePlusOne = true
 autoActivateDFC = true
 autoActivateOwnership = true
 scryfallCardCache = {}
+parsedScryfallCache = {}
 function ProcessSavedData(saved_data)
     if saved_data ~= nil and saved_data ~= "" then
         --print(saved_data)
-        local loaded_data = JSON.decode(saved_data)
+        --local loaded_data = JSON.decode(saved_data)
+        local loaded_data = LuaifyJSON(saved_data)
         autoActivateModule = loaded_data.autoActivateModule == nil and true or loaded_data.autoActivateModule
         autoActivatePlayerSettings = loaded_data.autoActivatePlayerSettings == nil and autoActivatePlayerSettings or loaded_data.autoActivatePlayerSettings
         autoActivateCounter = loaded_data.autoActivateCounter == nil and true or loaded_data.autoActivateCounter
@@ -2138,110 +2140,120 @@ function ParseCardData(dataTable)
             end
 
             local cardData = {}--new scryfall-based sectioning
-            for index, value in ipairs (faceSources) do
-                local cardStruct = {nameLine = "", typeLine = "", textLines = {}, power = "", toughness = "", loyalty = ""}    
-                table.insert(cardData, cardStruct)
-                cardData[index]["nameLine"] = faceSources[index]["name"]
-                cardData[index]["typeLine"] = faceSources[index]["type_line"]:gsub("−","-")
-                cardData[index]["textLines"] = string.splitUsingFind(faceSources[index]["oracle_text"],"\n")
-                cardData[index]["power"] = faceSources[index]["power"] ~= nil and faceSources[index]["power"] or nil
-                cardData[index]["toughness"] = faceSources[index]["toughness"] ~= nil and faceSources[index]["toughness"] or nil
-                cardData[index]["loyalty"] = faceSources[index]["loyalty"] ~= nil and faceSources[index]["loyalty"] or nil
-            end
 
-            for index, value in ipairs (cardData) do --goes off once for each face
-                --planeswalker check
-                if value["typeLine"]:find("laneswalker") then -- who knows if that P's gonna be capitalized
-                    data.cardFaces[index]["isPlaneswalker"] = true
-                    local loyaltyValue = cardData[index]["loyalty"] ~= nil and cardData[index]["loyalty"] or 0
-                    if loyaltyValue ~= nil then data.namedCounters = tonumber(loyaltyValue) end
-                    local pwAbilityCount = 0 --used to count amount of PW abilities vs amount of slots
+            local urlifiedName = UrlifyCardName(faceSources[data.activeFace]["name"])
+            if parsedScryfallCache[urlifiedName] ~= nil then
+                data = parsedScryfallCache[urlifiedName]["data"]
+                cardData = parsedScryfallCache[urlifiedName]["cardData"]
+            else
+                for index, value in ipairs (faceSources) do
+                    local cardStruct = {nameLine = "", typeLine = "", textLines = {}, power = "", toughness = "", loyalty = ""}    
+                    table.insert(cardData, cardStruct)
+                    cardData[index]["nameLine"] = faceSources[index]["name"]
+                    cardData[index]["typeLine"] = faceSources[index]["type_line"]:gsub("−","-")
+                    cardData[index]["textLines"] = string.splitUsingFind(faceSources[index]["oracle_text"],"\n")
+                    cardData[index]["power"] = faceSources[index]["power"] ~= nil and faceSources[index]["power"] or nil
+                    cardData[index]["toughness"] = faceSources[index]["toughness"] ~= nil and faceSources[index]["toughness"] or nil
+                    cardData[index]["loyalty"] = faceSources[index]["loyalty"] ~= nil and faceSources[index]["loyalty"] or nil
+                end
 
-                    --setting PW abilities
-                    for innerIndex, innerValue in ipairs (value["textLines"]) do
-                        local tooltipIndex = innerValue:find("%w%:%s")
-                        local abilityDelta = nil
+                for index, value in ipairs (cardData) do --goes off once for each face
+                    --planeswalker check
+                    if value["typeLine"]:find("laneswalker") then -- who knows if that P's gonna be capitalized
+                        data.cardFaces[index]["isPlaneswalker"] = true
+                        local loyaltyValue = cardData[index]["loyalty"] ~= nil and cardData[index]["loyalty"] or 0
+                        if loyaltyValue ~= nil then data.namedCounters = tonumber(loyaltyValue) end
+                        local pwAbilityCount = 0 --used to count amount of PW abilities vs amount of slots
 
-                        if tooltipIndex ~= nil then
-                            pwAbilityCount = pwAbilityCount + 1
-                            abilityDelta = innerValue:sub(1, tooltipIndex):gsub("−","-")
-                            abilityDelta = abilityDelta:find("[xX]+") ~= nil and "X" or tonumber(abilityDelta)
-                        end
+                        --setting PW abilities
+                        for innerIndex, innerValue in ipairs (value["textLines"]) do
+                            local tooltipIndex = innerValue:find("%w%:%s")
+                            local abilityDelta = nil
 
-                        local abilityText = tooltipIndex ~= nil and innerValue:sub(tooltipIndex + 3) or innerValue
-                        data.cardFaces[index]["pwAbilities"][innerIndex] = {abilityDelta = abilityDelta, abilityText = abilityText}
-                        data.cardFaces[index]["pwCount"] = data.cardFaces[index]["pwCount"] + 1
-                    end
+                            if tooltipIndex ~= nil then
+                                pwAbilityCount = pwAbilityCount + 1
+                                abilityDelta = innerValue:sub(1, tooltipIndex):gsub("−","-")
+                                abilityDelta = abilityDelta:find("[xX]+") ~= nil and "X" or tonumber(abilityDelta)
+                            end
 
-                    --trying to deal with placement edge cases - which all happen when there are only two slots
-                    if (data.cardFaces[index]["pwCount"] == 2) then
-                        --there's only one card with only 2 slots and 2 abilities... and it uses unique placement for some reason
-                        if pwAbilityCount ~= 2 then
+                            local abilityText = tooltipIndex ~= nil and innerValue:sub(tooltipIndex + 3) or innerValue
+                            data.cardFaces[index]["pwAbilities"][innerIndex] = {abilityDelta = abilityDelta, abilityText = abilityText}
                             data.cardFaces[index]["pwCount"] = data.cardFaces[index]["pwCount"] + 1
-                            --the other cards with 2 slots format correctly if one of the slots is counted as 2 (making a virtual third slot)
-                            if data.cardFaces[index]["pwAbilities"][1]["abilityText"]:len() > data.cardFaces[index]["pwAbilities"][2]["abilityText"]:len() then
-                                data.cardFaces[index]["pwAbilities"][3] = {abilityDelta = data.cardFaces[index]["pwAbilities"][2]["abilityDelta"], abilityText = data.cardFaces[index]["pwAbilities"][2]["abilityText"]}
-                                data.cardFaces[index]["pwAbilities"][2] = {abilityDelta = nil, abilityText = "filler created to correct formatting, this should not be appear anywhere"}
-                            else
-                                data.cardFaces[index]["pwAbilities"][3] = {abilityDelta = nil, abilityText = "filler created to correct formatting, this should not be appear anywhere"}
+                        end
+
+                        --trying to deal with placement edge cases - which all happen when there are only two slots
+                        if (data.cardFaces[index]["pwCount"] == 2) then
+                            --there's only one card with only 2 slots and 2 abilities... and it uses unique placement for some reason
+                            if pwAbilityCount ~= 2 then
+                                data.cardFaces[index]["pwCount"] = data.cardFaces[index]["pwCount"] + 1
+                                --the other cards with 2 slots format correctly if one of the slots is counted as 2 (making a virtual third slot)
+                                if data.cardFaces[index]["pwAbilities"][1]["abilityText"]:len() > data.cardFaces[index]["pwAbilities"][2]["abilityText"]:len() then
+                                    data.cardFaces[index]["pwAbilities"][3] = {abilityDelta = data.cardFaces[index]["pwAbilities"][2]["abilityDelta"], abilityText = data.cardFaces[index]["pwAbilities"][2]["abilityText"]}
+                                    data.cardFaces[index]["pwAbilities"][2] = {abilityDelta = nil, abilityText = "filler created to correct formatting, this should not be appear anywhere"}
+                                else
+                                    data.cardFaces[index]["pwAbilities"][3] = {abilityDelta = nil, abilityText = "filler created to correct formatting, this should not be appear anywhere"}
+                                end
+                            end
+                        end
+                    else --power/toughness
+                        data.cardFaces[index]["basePower"] = cardData[index]["power"] ~= nil and cardData[index]["power"] or nil
+                        data.cardFaces[index]["baseToughness"] = cardData[index]["toughness"] ~= nil and cardData[index]["toughness"] or nil
+                    end
+                end
+
+                if true then --plus one section, we only care about the active face
+                    if autoActivatePlusOne and cardData[data.activeFace]["typeLine"]:find("reature") then
+                        local selfReferralString = {"it", cardData[data.activeFace]["nameLine"]:match("^%w+")}
+
+                        for index, nameString in ipairs (selfReferralString) do
+                            for innerIndex, textLine in ipairs (cardData[data.activeFace]["textLines"]) do
+                                if textLine:find("[%+%-]1/[%+%-]1 counters? on "..nameString) then
+                                    data.displayPlusOne = autoActivatePlusOne
+                                    break --only breaks out of one loop
+                                end
                             end
                         end
                     end
-                else --power/toughness
-                    data.cardFaces[index]["basePower"] = cardData[index]["power"] ~= nil and cardData[index]["power"] or nil
-                    data.cardFaces[index]["baseToughness"] = cardData[index]["toughness"] ~= nil and cardData[index]["toughness"] or nil
                 end
-            end
 
-            if true then --plus one section, we only care about the active face
-                if autoActivatePlusOne and cardData[data.activeFace]["typeLine"]:find("reature") then
-                    local selfReferralString = {"it", cardData[data.activeFace]["nameLine"]:match("^%w+")}
-
-                    for index, nameString in ipairs (selfReferralString) do
-                        for innerIndex, textLine in ipairs (cardData[data.activeFace]["textLines"]) do
-                            if textLine:find("[%+%-]1/[%+%-]1 counters? on "..nameString) then
-                                data.displayPlusOne = autoActivatePlusOne
-                                break --only breaks out of one loop
-                            end
-                        end
-                    end
-                end
-            end
-
-            if isDFC then
-                frontFaceSplitCheck = cardData[1]["typeLine"]:find("nstant") and true or (cardData[1]["typeLine"]:find("orcery") and true)
-                backFaceSplitCheck = cardData[2]["typeLine"]:find("nstant") and true or (cardData[2]["typeLine"]:find("orcery") and true)
-                
-                if frontFaceSplitCheck and backFaceSplitCheck then
-                    data.doubleFaceType = "split"
-                else
-                    flipCardCheck = faceSources[data.activeFace]["oracle_text"]:find("lip it") or faceSources[data.activeFace]["oracle_text"]:find("lip "..cardData[1]["nameLine"]:match("^%w+"))
-                    if flipCardCheck ~= nil then
-                        data.doubleFaceType = "flip"
-                    elseif faceSources[1]["oracle_text"]:find("ransform") == nil then
-                        --alternatively: one side is a non-legendary land
-                        data.doubleFaceType = "modal"
-                    elseif cardData[2]["typeLine"]:find("ldrazi") ~= nil then
-                        data.doubleFaceType = "weredrazi"
-                    elseif cardData[2]["typeLine"]:find("[lL]and") ~= nil then
-                        data.doubleFaceType = "discovery"
-                    elseif (cardData[1]["typeLine"]:find("reature")) and (cardData[2]["typeLine"]:find("laneswalker")) then
-                        data.doubleFaceType = "ascendant"
+                if isDFC then
+                    frontFaceSplitCheck = cardData[1]["typeLine"]:find("nstant") and true or (cardData[1]["typeLine"]:find("orcery") and true)
+                    backFaceSplitCheck = cardData[2]["typeLine"]:find("nstant") and true or (cardData[2]["typeLine"]:find("orcery") and true)
+                    
+                    if frontFaceSplitCheck and backFaceSplitCheck then
+                        data.doubleFaceType = "split"
                     else
-                        data.doubleFaceType = "werecard"
+                        flipCardCheck = faceSources[data.activeFace]["oracle_text"]:find("lip it") or faceSources[data.activeFace]["oracle_text"]:find("lip "..cardData[1]["nameLine"]:match("^%w+"))
+                        if flipCardCheck ~= nil then
+                            data.doubleFaceType = "flip"
+                        elseif faceSources[1]["oracle_text"]:find("ransform") == nil then
+                            --alternatively: one side is a non-legendary land
+                            data.doubleFaceType = "modal"
+                        elseif cardData[2]["typeLine"]:find("ldrazi") ~= nil then
+                            data.doubleFaceType = "weredrazi"
+                        elseif cardData[2]["typeLine"]:find("[lL]and") ~= nil then
+                            data.doubleFaceType = "discovery"
+                        elseif (cardData[1]["typeLine"]:find("reature")) and (cardData[2]["typeLine"]:find("laneswalker")) then
+                            data.doubleFaceType = "ascendant"
+                        else
+                            data.doubleFaceType = "werecard"
+                        end
+                    end
+                    
+                    if data.doubleFaceType ~= "none" and data.doubleFaceType ~= "flip" and data.doubleFaceType ~= "split" then
+                        data.displayDFC = autoActivateDFC
                     end
                 end
-                
-                if data.doubleFaceType ~= "none" and data.doubleFaceType ~= "flip" and data.doubleFaceType ~= "split" then
-                    data.displayDFC = autoActivateDFC
-                end
+
+                parsedScryfallCache[urlifiedName] = {}
+                parsedScryfallCache[urlifiedName]["data"] = data
+                parsedScryfallCache[urlifiedName]["cardData"] = cardData
             end
 
             data.displayPowTou = autoActivatePowTou and (cardData[data.activeFace]["typeLine"]:find("reature") ~= nil)
             data.hasNonLoyaltyCounter = HasKeywordOrNamedCounter(cardData[data.activeFace]["nameLine"], faceSources[data.activeFace]["oracle_text"]) --maybe refactor this to not use the whole field
             data.displayPlaneswalkerAbilities = data.cardFaces[data.activeFace]["pwCount"] > 0
             data.displayCounters = autoActivateCounter and (data.cardFaces[data.activeFace].isPlaneswalker or data.hasNonLoyaltyCounter)
-
         end
         
         encData["tyrantUnified"] = data
@@ -2345,7 +2357,7 @@ function FetchScryfallData (var)
 
     table.insert(scryfallQueryTable, cardName)
     queryNameTable[cardName] = cardName
-    --used to check for redundancy, cleaned up in storescryfalldata
+    --used to check for redundancy, cleaned up in Storescryfalldata
 
     Timer.destroy("ScryfallQueryTimer")
     Timer.create({
@@ -2368,21 +2380,54 @@ function TimedScryfallQuery ()
     local cardName = table.remove(scryfallQueryTable, 1)
     --broadcastToAll("querying "..cardName)
     if cardName ~= nil and cardName ~= "" and scryfallCardCache[cardName] == nil then
-        WebRequest.get("https://api.scryfall.com/cards/named?fuzzy="..cardName, self, "StoreScryfallData")
+        WebRequest.get("https://api.scryfall.com/cards/named?fuzzy="..cardName, self, "ProcessScryfallData")
     end
 end
 
-function StoreScryfallData (requestedData)
+function ProcessScryfallData (requestedData)
     if requestedData.text then
-        decodedData = LuaifyJSON(requestedData.text)
+        --decodedData = LuaifyJSON(requestedData.text)
+        --decodedData = LuaifyJSONdelayed(requestedData.text)
+        StartLuaifyJSONcoroutine(requestedData.text)
     else return end
 
+    --[[
     local isDFC = false
     for key,value in pairs(decodedData) do
         if key == "card_faces" then
             isDFC = true
             scryfallCardCache[UrlifyCardName(value[1]["name"])] = decodedData
             scryfallCardCache[UrlifyCardName(value[2]["name"])] = decodedData
+
+            queryNameTable[UrlifyCardName(value[1]["name"])] = nil
+            queryNameTable[UrlifyCardName(value[2]["name"])] = nil
+        end
+
+        if key == "all_parts" then
+            for innerKey,innerValue in pairs(value) do
+                local cardType = innerValue["type_line"]:lower()
+                if cardType:find("emblem") then -- ignoring token data, it's not identifiable by name
+                    FetchScryfallData(innerValue["name"])
+                end
+            end
+        end
+    end
+
+    if not isDFC then
+        queryNameTable[UrlifyCardName(decodedData["name"])] = nil
+        --if decodedData["type_line"]:lower():find("token") then return end -- do not store token data, it's not identifiable by name
+        --gives bad data sometimes, but just keeps querying if we don't store it
+        scryfallCardCache[UrlifyCardName(decodedData["name"])] = decodedData
+    end--]]
+end
+
+function StoreScryfallData (luaTable)
+    local isDFC = false
+    for key,value in pairs(luaTable) do
+        if key == "card_faces" then
+            isDFC = true
+            scryfallCardCache[UrlifyCardName(value[1]["name"])] = luaTable
+            scryfallCardCache[UrlifyCardName(value[2]["name"])] = luaTable
 
             queryNameTable[UrlifyCardName(value[1]["name"])] = nil
             queryNameTable[UrlifyCardName(value[2]["name"])] = nil
@@ -2399,10 +2444,10 @@ function StoreScryfallData (requestedData)
     end
 
     if not isDFC then
-        queryNameTable[UrlifyCardName(decodedData["name"])] = nil
+        queryNameTable[UrlifyCardName(luaTable["name"])] = nil
         --if decodedData["type_line"]:lower():find("token") then return end -- do not store token data, it's not identifiable by name
         --gives bad data sometimes, but just keeps querying if we don't store it
-        scryfallCardCache[UrlifyCardName(decodedData["name"])] = decodedData
+        scryfallCardCache[UrlifyCardName(luaTable["name"])] = luaTable
     end
 end
 
@@ -2413,12 +2458,60 @@ function LuaifyJSON(jsonString)
 
     local luaTable = {}
     while jsonString ~= "" do
-        luaTable, jsonString = AddParsedKey(jsonString, luaTable, count)
+        luaTable, jsonString = AddParsedKey(jsonString, luaTable)
     end
     return luaTable
 end
 
-function AddParsedKey (jsonString, luaTable, debug)
+luaifyWaitID = nil
+function StartLuaifyJSONcoroutine(jsonString)
+    table.insert(JSONqueue, jsonString)
+    --log(coroutine.status(LuaifyJSONcoroutine))
+    --if coroutine.status(LuaifyJSONcoroutine) ~= "running" then
+        --startLuaCoroutine(self, "LuaifyJSONcoroutine")
+    --end
+
+    if luaifyWaitID ~= nil then Wait.stop(luaifyWaitID) end
+    if LuaifyJSONcoroutineInstance == nil or coroutine.status(LuaifyJSONcoroutineInstance) == "dead" then LuaifyJSONcoroutineInstance = coroutine.create(LuaifyJSONcoroutineFunction) end
+    luaifyWaitID = Wait.time(function() coroutine.resume(LuaifyJSONcoroutineInstance) end, 0.01, -1)
+end
+
+JSONqueue = {}
+parseYieldInterval = 3
+LuaifyJSONcoroutineInstance = nil
+function LuaifyJSONcoroutineFunction()
+    while JSONqueue[1] ~= nil do 
+        jsonString = table.remove(JSONqueue,1)
+        --log("started ||"..jsonString:sub(1, 40).."||")
+
+        jsonString = jsonString:sub(2, jsonString:find("}$")-1)
+        jsonString = jsonString:gsub('\\"',"\\'")
+        --this should remove the start and end {} & avoid ending strings early
+
+        local luaTable = {}
+
+        local currentYieldInterval = parseYieldInterval
+        while jsonString ~= "" do
+            luaTable, jsonString = AddParsedKey(jsonString, luaTable)
+
+            currentYieldInterval = currentYieldInterval - 1
+            if currentYieldInterval == 0 then
+                currentYieldInterval = parseYieldInterval
+                coroutine.yield()
+            end
+        end
+
+        --log("finished ||"..luaTable["id"])
+
+        StoreScryfallData(luaTable)
+    end
+    
+    Wait.stop(luaifyWaitID)
+    return ("Parsing queue clear")
+end
+
+
+function AddParsedKey (jsonString, luaTable)
     local valueKey
     valueKey, jsonString = KeyParse(jsonString)
     
@@ -2448,6 +2541,7 @@ function ParseJSON(jsonString)
 end
 
 function KeyParse(jsonString)
+    --log("|||"..jsonString:sub(1, 40).."||")
     local startIndex,endIndex = jsonString:find('^"[%w_]-":')
     
     local valueKey = jsonString:sub(startIndex + 1, endIndex - 2)
@@ -2552,8 +2646,8 @@ function InitializeCardData(object, enc)
         function_name = "TryTimedParse",
         function_owner = self,
         parameters = dataTable,
-        delay = 0.25,
-        repetitions = 40
+        delay = 0.5,
+        repetitions = 60
     })
 end
 
