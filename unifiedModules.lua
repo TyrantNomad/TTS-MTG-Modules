@@ -1,4 +1,4 @@
-moduleVersion = 2.72
+moduleVersion = 2.73
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -1694,7 +1694,7 @@ function ReceiveChangeActiveFace (tar, ply, alt)
     local data = encData["tyrantUnified"]
     local cardData = CheckGetSetCardTable(tar, nil)
 
-    if data["doubleFaceStates"] then
+    if data["doubleFaceStates"] and alt == false then
         local dfcStates = tar.getStates()
         local newDFCobject = tar.setState(dfcStates[1]["id"])
         TryEncoding(newDFCobject)
@@ -2124,20 +2124,29 @@ function ParseCardData(dataTable)
         data.hasParsed = true
         if scryfallData ~= nil then
             local isDFC = scryfallData["card_faces"] ~= nil
+            local stateBasedDFC = object.getStates() ~=  nil -- new DFC cards with states
             local faceSources = {}
             if isDFC then
                 faceSources[1] = scryfallData["card_faces"][1]
                 faceSources[2] = scryfallData["card_faces"][2]
+
+                if  stateBasedDFC then
+                    data.doubleFaceStates = true
+                    data.activeFace = object.getStateId()-- == 1 and 2 or 1
+                    --could it be? the end of inverted faces???
+                else
+                    if CheckInvertedFaces(object) then
+                        data.activeFace = 2
+                    else
+                        local backFaceNameUrlified = UrlifyCardName(faceSources[2]["name"])
+                        --honestly just a weird check as none of the old DFCs had the back face name on namefield
+                        --whatever, weird checks but ok
+                        data.activeFace = dataTable.nameUrlified == backFaceNameUrlified and 2 or 1
+                    end 
+                end
             else
                 faceSources[1] = scryfallData
-            end
-
-            local stateBasedDFC = object.getStates() ~=  nil -- new DFC cards with states
-            if stateBasedDFC then
-                data.doubleFaceStates = true
-                data.activeFace = object.getStateId()-- == 1 and 2 or 1
-                --could it be? the end of inverted faces???
-            end
+            end   
 
             local cardData = {}--new scryfall-based sectioning
 
@@ -2315,7 +2324,7 @@ end
 
 function onObjectSpawn(obj)
     if obj.tag == "Card" then
-        CheckRevertInvertedFaces(obj)
+        if CheckInvertedFaces(obj) then InvertCardFaces(card) end
 
         cardTable = CheckGetSetCardTable(obj)
     end
@@ -2567,6 +2576,9 @@ end
 
 function UrlifyCardName (cardName)
     if cardName == nil or cardName == "" then return "" end
+    local dfcNameIndex = cardName:find("%s?//")
+    if dfcNameIndex ~= nil then cardName = cardName:sub(1, dfcNameIndex-1) end
+
     cardName = cardName:gsub("%[.-%]",""):lower()
     cardName = cardName:gsub("[,%']","")
     cardName = cardName:gsub("%s","-")
@@ -2715,14 +2727,15 @@ function CheckGetSetCardTable (card, containerTable)
     return cardTable
 end
 
-function CheckRevertInvertedFaces (card)
+function CheckInvertedFaces (card)
     local cardData = card.getCustomObject()
     local faceAddress = cardData["face"] ~= nil and cardData["face"] or ""
     local backAddress = cardData["back"] ~= nil and cardData["back"] or ""
-    if faceAddress:find("/back/") and backAddress:find("/front/") then
+    if faceAddress:find("/back/") or backAddress:find("/front/") then
+        return true
         --broadcastToAll("[888888][EASY MODULES][-]\nInverted card faces detected & switched for "..card.getName():match("(.-)\n"))
-        InvertCardFaces(card)
     end
+    return false
 end
 
 function InvertCardFaces (card)
