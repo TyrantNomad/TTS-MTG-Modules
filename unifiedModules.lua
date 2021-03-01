@@ -2731,7 +2731,7 @@ function CheckInvertedFaces (card)
     local cardData = card.getCustomObject()
     local faceAddress = cardData["face"] ~= nil and cardData["face"] or ""
     local backAddress = cardData["back"] ~= nil and cardData["back"] or ""
-    if faceAddress:find("/back/") or backAddress:find("/front/") then
+    if faceAddress:find("/back/") and backAddress:find("/front/") then
         return true
         --broadcastToAll("[888888][EASY MODULES][-]\nInverted card faces detected & switched for "..card.getName():match("(.-)\n"))
     end
