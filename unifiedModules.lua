@@ -1,4 +1,4 @@
-moduleVersion = 2.74
+moduleVersion = 2.75
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -2146,14 +2146,18 @@ function ParseCardData(dataTable)
                 end
             else
                 faceSources[1] = scryfallData
-            end   
+            end
 
             local cardData = {}--new scryfall-based sectioning
 
             local urlifiedName = UrlifyCardName(faceSources[data.activeFace]["name"])
             if parsedScryfallCache[urlifiedName] ~= nil then
-                data = parsedScryfallCache[urlifiedName]["data"]
+                local cachedData = parsedScryfallCache[urlifiedName]["data"]
                 cardData = parsedScryfallCache[urlifiedName]["cardData"]
+                cachedData.doubleFaceStates = stateBasedDFC
+                cachedData.activeFace = data.activeFace
+
+                data = cachedData
             else
                 for index, value in ipairs (faceSources) do
                     local cardStruct = {nameLine = "", typeLine = "", textLines = {}, power = "", toughness = "", loyalty = ""}    
