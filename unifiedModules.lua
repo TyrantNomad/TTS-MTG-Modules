@@ -1,4 +1,4 @@
-moduleVersion = 2.75
+moduleVersion = 2.76
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -2124,6 +2124,7 @@ function ParseCardData(dataTable)
         data.hasParsed = true
         if scryfallData ~= nil then
             local isDFC = scryfallData["card_faces"] ~= nil
+            local isToken = false
             local stateBasedDFC = object.getStates() ~=  nil -- new DFC cards with states
             local faceSources = {}
             if isDFC then
@@ -2170,12 +2171,23 @@ function ParseCardData(dataTable)
                     cardData[index]["loyalty"] = faceSources[index]["loyalty"] ~= nil and faceSources[index]["loyalty"] or nil
                 end
 
+                --dirty token fix?
+                isToken = cardData[data.activeFace]["typeLine"]:lower():find("token") ~= nil
+                if isToken then
+                    local objectDescription = object.getDescription()
+                    local startIndex, endIndex = objectDescription:find("%[b%].-%/.-%[%/b%]")
+                    if startIndex ~= nil then
+                        local tokenPowtou = objectDescription:sub(startIndex+3,endIndex-4)
+                        cardData[data.activeFace]["power"] = tokenPowtou:match("^(.-)%/")
+                        cardData[data.activeFace]["toughness"] = tokenPowtou:match("/(.-)$")
+                    end
+                end
+
+                if cardData[data.activeFace]["loyalty"] ~= nil then data.namedCounters = tonumber(cardData[data.activeFace]["loyalty"]) end
                 for index, value in ipairs (cardData) do --goes off once for each face
                     --planeswalker check
                     if value["typeLine"]:find("laneswalker") then -- who knows if that P's gonna be capitalized
                         data.cardFaces[index]["isPlaneswalker"] = true
-                        local loyaltyValue = cardData[index]["loyalty"] ~= nil and cardData[index]["loyalty"] or 0
-                        if loyaltyValue ~= nil then data.namedCounters = tonumber(loyaltyValue) end
                         local pwAbilityCount = 0 --used to count amount of PW abilities vs amount of slots
 
                         --setting PW abilities
@@ -2258,9 +2270,11 @@ function ParseCardData(dataTable)
                     end
                 end
 
-                parsedScryfallCache[urlifiedName] = {}
-                parsedScryfallCache[urlifiedName]["data"] = data
-                parsedScryfallCache[urlifiedName]["cardData"] = cardData
+                if not isToken then
+                    parsedScryfallCache[urlifiedName] = {}
+                    parsedScryfallCache[urlifiedName]["data"] = data
+                    parsedScryfallCache[urlifiedName]["cardData"] = cardData
+                end
             end
 
             data.displayPowTou = autoActivatePowTou and (cardData[data.activeFace]["typeLine"]:find("reature") ~= nil)
