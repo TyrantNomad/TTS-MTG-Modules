@@ -1,4 +1,4 @@
-moduleVersion = 2.76
+moduleVersion = 2.77
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -57,8 +57,8 @@ parsedScryfallCache = {}
 function ProcessSavedData(saved_data)
     if saved_data ~= nil and saved_data ~= "" then
         --print(saved_data)
-        --local loaded_data = JSON.decode(saved_data)
-        local loaded_data = LuaifyJSON(saved_data)
+        local loaded_data = JSON.decode(saved_data)
+        --local loaded_data = LuaifyJSON(saved_data)
         autoActivateModule = loaded_data.autoActivateModule == nil and true or loaded_data.autoActivateModule
         autoActivatePlayerSettings = loaded_data.autoActivatePlayerSettings == nil and autoActivatePlayerSettings or loaded_data.autoActivatePlayerSettings
         autoActivateCounter = loaded_data.autoActivateCounter == nil and true or loaded_data.autoActivateCounter
