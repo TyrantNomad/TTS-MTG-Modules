@@ -1,4 +1,4 @@
-moduleVersion = 2.77
+moduleVersion = 2.78
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -2829,7 +2829,9 @@ end
 
 function ToBool(boolString)
     --the cheapest solution in the west
-    local boolString = string.lower(boolString)
+    local boolString = string.lower(tostring(boolString))
+    --**taps forehead
+    --if you turn it into a string first, then it will never be the wrong type for the conversion
     if boolString == "true" then return true
     else return false
     end
