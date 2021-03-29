@@ -59,13 +59,13 @@ function ProcessSavedData(saved_data)
         --print(saved_data)
         local loaded_data = JSON.decode(saved_data)
         --local loaded_data = LuaifyJSON(saved_data)
-        autoActivateModule = loaded_data.autoActivateModule == nil and true or loaded_data.autoActivateModule
+        autoActivateModule = loaded_data.autoActivateModule == nil and true or ToBool(loaded_data.autoActivateModule)
         autoActivatePlayerSettings = loaded_data.autoActivatePlayerSettings == nil and autoActivatePlayerSettings or loaded_data.autoActivatePlayerSettings
-        autoActivateCounter = loaded_data.autoActivateCounter == nil and true or loaded_data.autoActivateCounter
-        autoActivatePowTou = loaded_data.autoActivatePowTou == nil and true or loaded_data.autoActivatePowTou
-        autoActivatePlusOne = loaded_data.autoActivatePlusOne == nil and true or loaded_data.autoActivatePlusOne
-        autoActivateDFC = loaded_data.autoActivateDFC == nil and true or loaded_data.autoActivateDFC
-        autoActivateOwnership = loaded_data.autoActivateOwnership == nil and true or loaded_data.autoActivateOwnership
+        autoActivateCounter = loaded_data.autoActivateCounter == nil and true or ToBool(loaded_data.autoActivateCounter)
+        autoActivatePowTou = loaded_data.autoActivatePowTou == nil and true or ToBool(loaded_data.autoActivatePowTou)
+        autoActivatePlusOne = loaded_data.autoActivatePlusOne == nil and true or ToBool(loaded_data.autoActivatePlusOne)
+        autoActivateDFC = loaded_data.autoActivateDFC == nil and true or ToBool(loaded_data.autoActivateDFC)
+        autoActivateOwnership = loaded_data.autoActivateOwnership == nil and true or ToBool(loaded_data.autoActivateOwnership)
     end
 end
 
@@ -2825,4 +2825,12 @@ function AddPlayerDeck(playerColor, containerGUID)
 end
 
 function DoNothing()
+end
+
+function ToBool(boolString)
+    --the cheapest solution in the west
+    local boolString = string.lower(boolString)
+    if boolString == "true" then return true
+    else return false
+    end
 end
