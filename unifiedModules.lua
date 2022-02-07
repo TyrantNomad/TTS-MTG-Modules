@@ -1,4 +1,4 @@
-moduleVersion = 2.78
+moduleVersion = 2.79
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -1543,6 +1543,14 @@ function createButtons(t)
 end
 
 function GetPlaneswalkerAbilityVerticalOffset (abilityIndex, abilityCount)
+    local fiveSlotOffsets = {
+        1.12 - 0.21*4,
+        1.12 - 0.21*3,
+        1.12 - 0.21*2,
+        1.12 - 0.21*1,
+        1.12 - 0.21*0,
+    }
+
     local fourSlotOffsets = {
         0.3,
         0.58,
@@ -1563,10 +1571,11 @@ function GetPlaneswalkerAbilityVerticalOffset (abilityIndex, abilityCount)
         1.02
     }
 
-    if abilityIndex >= 1 and abilityIndex <= 4 then
-        if (abilityCount >= 4) then
-            if (abilityIndex > 4) then broadcastToAll("[888888][EASY MODULES][-]\nInvalid planeswalker ability index received: "..abilityIndex) end
-            
+    if abilityIndex >= 1 and abilityIndex <= 5 then
+        if (abilityCount >= 5) then
+            if (abilityIndex > 5) then broadcastToAll("[888888][EASY MODULES][-]\nInvalid planeswalker ability index received: "..abilityIndex) end
+            return fiveSlotOffsets[math.min(abilityIndex, 5)]
+        elseif (abilityCount == 4) then
             return fourSlotOffsets[math.min(abilityIndex, 4)]
         elseif (abilityCount == 3) then
             return threeSlotOffsets[math.min(abilityIndex, 3)]
@@ -1822,6 +1831,13 @@ function ReceivePlaneswalkerClickSlot4 (tar, ply, alt)
     local dataTable = GetClickdataTable(tar, ply, alt)
     dataTable.varName = "namedCounters"
     dataTable.varDelta = GetPlaneswalkerAbilityDelta(dataTable, 4)
+    PropagateValueChange(dataTable)
+end
+
+function ReceivePlaneswalkerClickSlot5 (tar, ply, alt)
+    local dataTable = GetClickdataTable(tar, ply, alt)
+    dataTable.varName = "namedCounters"
+    dataTable.varDelta = GetPlaneswalkerAbilityDelta(dataTable, 5)
     PropagateValueChange(dataTable)
 end
 
