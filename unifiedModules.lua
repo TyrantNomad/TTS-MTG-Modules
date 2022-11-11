@@ -1,4 +1,4 @@
-moduleVersion = 2.79
+moduleVersion = 2.80
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -972,7 +972,7 @@ function createButtons(t)
                             local pwAbilityTooltip =
                                 hexTooltipHighlight..pwAbilityCost.."Loyalty:[-]\n".. 
                                 hexTooltipMidlight..data.cardFaces[activeFace]["pwAbilities"][index]["abilityText"]
-    
+                                
                             local isNeutralAbility = pwAbilityDelta == 0
                             pwAbilityDelta = type(pwAbilityDelta) ~= "number" and -1 or pwAbilityDelta
     
@@ -1543,12 +1543,21 @@ function createButtons(t)
 end
 
 function GetPlaneswalkerAbilityVerticalOffset (abilityIndex, abilityCount)
+    local sixSlotOffsets = {
+        1.18 - 0.16*5,
+        1.18 - 0.16*4,
+        1.18 - 0.16*3,
+        1.18 - 0.16*2,
+        1.18 - 0.16*1,
+        1.18 - 0.16*0,
+    }
+    
     local fiveSlotOffsets = {
-        1.12 - 0.21*4,
-        1.12 - 0.21*3,
-        1.12 - 0.21*2,
-        1.12 - 0.21*1,
-        1.12 - 0.21*0,
+        1.08 - 0.20*4,
+        1.08 - 0.20*3,
+        1.08 - 0.20*2,
+        1.08 - 0.20*1,
+        1.08
     }
 
     local fourSlotOffsets = {
@@ -1570,10 +1579,11 @@ function GetPlaneswalkerAbilityVerticalOffset (abilityIndex, abilityCount)
         0.62,
         1.02
     }
-
-    if abilityIndex >= 1 and abilityIndex <= 5 then
-        if (abilityCount >= 5) then
-            if (abilityIndex > 5) then broadcastToAll("[888888][EASY MODULES][-]\nInvalid planeswalker ability index received: "..abilityIndex) end
+    
+    if abilityIndex >= 1 and abilityIndex <= 6 then
+        if (abilityCount >= 6) then
+            return sixSlotOffsets[math.min(abilityIndex,6)]
+        elseif (abilityCount >= 5) then
             return fiveSlotOffsets[math.min(abilityIndex, 5)]
         elseif (abilityCount == 4) then
             return fourSlotOffsets[math.min(abilityIndex, 4)]
