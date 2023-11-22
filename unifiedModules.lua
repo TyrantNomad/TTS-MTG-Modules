@@ -1,4 +1,4 @@
-moduleVersion = 2.80
+moduleVersion = 2.81
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -8,10 +8,10 @@ pID = "_MTG_Simplified_UNIFIED"
 
 isRegistered = false
 
-unifiedGithubLink = "https://raw.githubusercontent.com/TyrantNomad/TTS-MTG-Modules/master/unifiedModules.lua"
+unifiedGithubLink = "https://raw.githubusercontent.com/jordanpg/TTS-MTG-Modules/master/unifiedModules.lua"
 
 function onload(saved_data)
-    WebRequest.get("https://raw.githubusercontent.com/TyrantNomad/TTS-MTG-Modules/master/unifiedModules.lua", self, "SelfUpdateCheck")
+    WebRequest.get("https://raw.githubusercontent.com/jordanpg/TTS-MTG-Modules/master/unifiedModules.lua", self, "SelfUpdateCheck")
 
     local dataTable = {recursiveCall=false}
     ProcessSavedData(saved_data)
@@ -2626,6 +2626,7 @@ function UrlifyCardName (cardName)
     cardName = cardName:gsub("%[.-%]",""):lower()
     cardName = cardName:gsub("[,%']","")
     cardName = cardName:gsub("%s","-")
+    cardName = cardName:gsub("\\","")
     return cardName
 end
 
