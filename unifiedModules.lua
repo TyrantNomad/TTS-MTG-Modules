@@ -1,4 +1,4 @@
-moduleVersion = 2.80
+moduleVersion = 2.81
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -2626,6 +2626,7 @@ function UrlifyCardName (cardName)
     cardName = cardName:gsub("%[.-%]",""):lower()
     cardName = cardName:gsub("[,%']","")
     cardName = cardName:gsub("%s","-")
+    cardName = cardName:gsub("\\","")
     return cardName
 end
 
