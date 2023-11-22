@@ -8,10 +8,10 @@ pID = "_MTG_Simplified_UNIFIED"
 
 isRegistered = false
 
-unifiedGithubLink = "https://raw.githubusercontent.com/jordanpg/TTS-MTG-Modules/master/unifiedModules.lua"
+unifiedGithubLink = "https://raw.githubusercontent.com/TyrantNomad/TTS-MTG-Modules/master/unifiedModules.lua"
 
 function onload(saved_data)
-    WebRequest.get("https://raw.githubusercontent.com/jordanpg/TTS-MTG-Modules/master/unifiedModules.lua", self, "SelfUpdateCheck")
+    WebRequest.get("https://raw.githubusercontent.com/TyrantNomad/TTS-MTG-Modules/master/unifiedModules.lua", self, "SelfUpdateCheck")
 
     local dataTable = {recursiveCall=false}
     ProcessSavedData(saved_data)
