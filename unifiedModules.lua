@@ -1,4 +1,4 @@
-moduleVersion = 2.81
+moduleVersion = 2.82
 pID = "_MTG_Simplified_UNIFIED"
 
 --Easy Modules Unified
@@ -2307,6 +2307,14 @@ function ParseCardData(dataTable)
             data.hasNonLoyaltyCounter = HasKeywordOrNamedCounter(cardData[data.activeFace]["nameLine"], faceSources[data.activeFace]["oracle_text"]) --maybe refactor this to not use the whole field
             data.displayPlaneswalkerAbilities = data.cardFaces[data.activeFace]["pwCount"] > 0
             data.displayCounters = autoActivateCounter and (data.cardFaces[data.activeFace].isPlaneswalker or data.hasNonLoyaltyCounter)
+        else
+            data.displayPowTou = false
+            data.hasNonLoyaltyCounter = false
+            data.displayCounters = false
+            data.displayPlaneswalkerAbilities = false
+            data.activeFace = 1
+            data.displayDFC = false
+            data.doubleFaceStates = object.getStates() ~=  nil
         end
         
         encData["tyrantUnified"] = data
@@ -2412,14 +2420,15 @@ function FetchScryfallData (var)
     queryNameTable[cardName] = cardName
     --used to check for redundancy, cleaned up in Storescryfalldata
 
-    Timer.destroy("ScryfallQueryTimer")
-    Timer.create({
-        identifier = "ScryfallQueryTimer",
-        function_name = "TimedScryfallQuery",
-        function_owner = self,
-        delay = 0.125,
-        repetitions = 0
-    })
+    -- Scryfall is disabled.
+    -- Timer.destroy("ScryfallQueryTimer")
+    -- Timer.create({
+    --     identifier = "ScryfallQueryTimer",
+    --     function_name = "TimedScryfallQuery",
+    --     function_owner = self,
+    --     delay = 0.125,
+    --     repetitions = 0
+    -- })
 end
 
 queryNameTable = {}
@@ -2655,20 +2664,22 @@ function AutoActivate(dataTable)
 end
 
 function InitializeCardData(object, enc)
-    FetchScryfallData(object)
+    -- Scryfall is disabled.
+    -- FetchScryfallData(object)
     TryAssignOwnership(object, enc)
 
     local dataTable = {object = object, enc = enc, GUID = object.getGUID()}
-    if object.getName() == "" then ParseCardData(dataTable) return end
-    Timer.destroy(object.getGUID().."parseTimer")
-    Timer.create({
-        identifier = object.getGUID().."parseTimer",
-        function_name = "TryTimedParse",
-        function_owner = self,
-        parameters = dataTable,
-        delay = 0.5,
-        repetitions = 60
-    })
+    if object.getName() == "" or true then ParseCardData(dataTable) return end
+    -- Scryfall is disabled.
+    -- Timer.destroy(object.getGUID().."parseTimer")
+    -- Timer.create({
+    --     identifier = object.getGUID().."parseTimer",
+    --     function_name = "TryTimedParse",
+    --     function_owner = self,
+    --     parameters = dataTable,
+    --     delay = 0.5,
+    --     repetitions = 60
+    -- })
 end
 
 function TryAssignOwnership(object, enc)
